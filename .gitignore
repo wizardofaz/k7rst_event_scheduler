@@ -1,0 +1,32 @@
+# Ignore backup files like xxx.php.backupxxx
+*.php.backup*
+*.bak
+*.tmp
+*~
+
+# === Editor-specific ===
+# VS Code
+.vscode/
+
+# Notepad++
+*.nppBackup
+*.nppsave# Ignore editor swap/backup files
+*.swp
+*.swo
+*.swn
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore log files
+*.log
+
+# Ignore local config overrides (optional)
+config.local.php
+
+# Ignore Composer dependencies (if used)
+vendor/
+
+# Ignore environment files
+.env
