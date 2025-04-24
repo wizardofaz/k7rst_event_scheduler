@@ -1,0 +1,131 @@
+CACTUS Scheduler System Description
+
+Overview
+The CACTUS Scheduler is a web-based scheduling system designed for amateur radio 
+operators participating in a special event hosted by the Radio Society of Tucson (K7RST). 
+The event activates multiple callsigns — each representing a different cactus species
+ — and invites hams to reserve operating time across various bands and modes.
+
+The system allows operators to:
+
+View existing schedules.
+
+Select available time slots.
+
+Optionally reserve a club station.
+
+Add personal notes to each booking.
+
+Manage (add/delete) their own scheduled slots.
+
+Password use is optional — and only required for making changes after a password is 
+initially set. Browsing and viewing schedules does not require login or a password.
+
+Key Functional Features
+Operator Inputs and Filtering
+Operators specify what part of the schedule they want to browse to see existing 
+schedule and openings, and optionally, claim one or more open slots. The form 
+includes:
+
+Callsign (required, uppercased)
+
+Name (required)
+
+Password (optional; required only if previously set, and only for adding/deleting scheduled slots)
+
+Operators can filter slots using:
+
+Bands – selectable checkboxes (with “All” option)
+
+Modes – selectable checkboxes (with “All” option)
+
+Date Range – select start and end date; one date implies a single day
+
+Time Ranges – four daily blocks (Midnight–6am, 6am–Noon, etc.) + “All”
+
+Days of the Week – checkboxes (Mon–Sun + “All”)
+
+Two optional fields can be specified during the claiming of a previously open slot:
+
+Club Station – dropdown per-slot (from a list defined in config)
+
+Notes – freeform notes per-slot
+
+Scheduling and Views
+Views are always filtered by choices of band, mode, day, and time ranges. 
+Operators can:
+
+Show Available Slots: open slots + ones already booked by the current user
+
+Show My Schedule Only: only bookings by this operator
+
+Show All Scheduled Slots: all current bookings
+
+Download CSV or Print the resulting table
+
+Each result displays in a table showing:
+
+Callsign (for currently booked slots)
+
+Name (for currently booked slots)
+
+Date, Time, Band, Mode
+
+Club Station (if any), Notes (if any)
+
+Status (open/booked by user/booked by others)
+
+If a slot is booked by the current user, it's highlighted and can be deleted. Open slots show dropdown/select fields for Club Station and Notes.
+
+Database Structure
+schedule Table
+id (auto-increment)
+
+date, time (hourly granularity)
+
+op_call, op_name
+
+band, mode
+
+club_station (nullable)
+
+notes (nullable)
+
+operator_passwords Table
+op_call (primary key)
+
+op_password
+
+Password Behavior
+No password is needed for viewing or browsing schedules.
+
+First-time users can set a password by entering one during booking.
+
+Once set, the password must be used for any future schedule changes.
+
+Passwords are stored in the operator_passwords table.
+
+Successfully authenticated callsigns are stored in the PHP session for 2 hours of inactivity.
+
+Session-based login is indicated with a green success message (displays for only 5 seconds) 
+and a Logout button (replaces password field).
+
+Clicking Logout destroys the session and resets the form.
+
+Technical Notes
+Built using PHP and MySQL.
+
+A small config.php file externalizes the following:
+List of bands
+List of modes
+List of club station choices 
+For accessing the database: DB server, DB name, login name, password
+
+Sessions are configured for 2 hours of idle timeout.
+
+All callsigns are normalized to uppercase.
+
+The UI uses standard HTML and CSS (with some JavaScript for checkbox helpers and popups).
+
+A “How Do I Use This?” help page is linked from the main screen.
+

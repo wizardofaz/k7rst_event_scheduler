@@ -1,0 +1,13 @@
+Scheduler todo
+
+make behavior of ALL selection consistent
+externalize time range definitions
+admin screen, admin users
+limit displayed result to xxx (from config) - unless using show all scheduled
+a station should not be able to reserve the same time slot for more than one band/mode
+re-display table after add/delete
+if logged in, clicking a show button logs out (and otherwise does the right thing)
+type call+name press enter fetches the call's current schedule
+adding to schedule without password not possible (no button)
+
+
