@@ -1,6 +1,7 @@
 <?php
 require_once 'config.php';
 require_once 'logging.php';
+require_once 'db.php';
 
 ini_set('session.gc_maxlifetime', 7200);
 session_set_cookie_params(7200);
@@ -81,7 +82,7 @@ if (!isset($_SESSION['authenticated_users'])) {
 }
 
 // 🔐 Authentication check using operator_passwords table
-$requires_authentication = isset($_POST['schedule']) || isset($_POST['delete']);
+$requires_authentication = isset($_POST['add_selected']) || isset($_POST['delete_selected']);
 
 // Only check password if it's an operation that requires password authentication
 // BUT even those operations only require a password if the operator has given one at least once
@@ -102,25 +103,18 @@ if (($requires_authentication || $op_password_input) && $op_call_input) {
     log_msg(DEBUG_INFO, "🔍 Password check triggered for $op_call_input");
 	
 	// first try to look up the Password
-	$stored_pw = '';
-	$pw_check = $conn->query("SELECT op_password FROM operator_passwords WHERE op_call = '$op_call_input'");
-	if ($pw_check && $pw_check->num_rows > 0) { // there is an entry in the database password table
-		$stored_pw = $pw_check->fetch_assoc()['op_password'];
-		log_msg(DEBUG_INFO, "✅ Password from database for $op_call_input is $stored_pw");
-	}
-	
-	$db_pw_exists = false;
-	if ($stored_pw != '') {
-		$db_pw_exists = true;
-	} else {
-		log_msg(DEBUG_INFO, "✅ No non-blank password exists in database for $op_call_input is $stored_pw");
+	$stored_pw = db_get_operator_password($conn, $op_call_input);
+
+	$db_pw_exists = $stored_pw != '';
+	if (!$db_pw_exists) {
+		log_msg(DEBUG_INFO, "✅ No non-blank password exists in database for $op_call_input");
 	}
 
 	// $_SESSION['login_success'] = true; // triggers showing flash logged in message (see below)
 	// When the flash has been displayed, $_SESSION['login_shown'] = true; will be done by html section
 	// $_SESSION['logged_in'] = true indicates actual logged in state, with a password
 	if ($op_password_input !== '') { // password was entered
-        log_msg(DEBUG_INFO, "✅ Input password given $op_call_input is $op_password_input");
+        log_msg(DEBUG_INFO, "✅ Input password given for $op_call_input is $op_password_input");
 		if($db_pw_exists) { // there is a non-blank entry in the database password table 
 			log_msg(DEBUG_INFO, "✅ Password from database for $op_call_input is $stored_pw");
 			if($stored_pw === $op_password_input) { // entered password matches database password 
@@ -168,7 +162,7 @@ if (($requires_authentication || $op_password_input) && $op_call_input) {
 $result = [];
 
 if (($authorized || !$requires_authentication) && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['schedule']) && isset($_POST['slots'])) {
+    if (isset($_POST['add_selected']) && isset($_POST['slots'])) {
 		log_msg(DEBUG_INFO, "✅ processing schedule add");
         foreach ($_POST['slots'] as $slot) {
             $club_station = $_POST['club_station'][$slot] ?? '';
@@ -201,7 +195,7 @@ if (($authorized || !$requires_authentication) && $_SERVER['REQUEST_METHOD'] ===
 		$all_scheduled = ($_SESSION['most_recent_show'] === 'all_scheduled');
     }
 
-    if (isset($_POST['delete']) && isset($_POST['delete_slots'])) {
+    if (isset($_POST['delete_selected']) && isset($_POST['delete_slots'])) {
 		log_msg(DEBUG_INFO, "✅ processing schedule delete");
         foreach ($_POST['delete_slots'] as $slot) {
             list($date, $time, $band, $mode) = explode('|', $slot);
@@ -505,8 +499,8 @@ trigger_error("Remember to turn off logging when finished debugging", E_USER_WAR
 
 		<br>
 		<?php if ($authorized): ?>
-		  <input type="submit" name="schedule" value="Add Selected Slots">
-		  <input type="submit" name="delete" value="Delete Selected Slots">
+		  <input type="submit" name="add_selected" value="Add Selected Slots">
+		  <input type="submit" name="delete_selected" value="Delete Selected Slots">
 		<?php endif; ?>
 <?php endif; ?>
 </form>
