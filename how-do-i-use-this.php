@@ -38,25 +38,21 @@
 
 <h2>2. Finding Available Slots</h2>
 <ul>
-    <li>Select the <strong>bands</strong> and <strong>modes</strong> you are interested in using.</li>
     <li>Choose a date range, time of day, and which days of the week you're available.</li>
-    <li>Click <strong>“Show Mine and Unscheduled”</strong> to see matching open slots, 
-		as well as any slots you have already scheduled.</li>
+    <li>The defaults will select all hours and days of the entire event calendar</li>
+    <li>Click <strong>“Show Complete Calendar”</strong> to see the calendar within the date/time/days 
+		you selected. You will see open slots and scheduled slots.</li>
 	<li>The other two choices can show you everything currently scheduled 
-		<strong>(Show All Scheduled Slots)</strong>, or just your own schedule 
-		<strong>(Show Mine Only)</strong>. 
+		<strong>(Show Scheduled Slots Only)</strong>, or just your own schedule 
+		<strong>(Show My Schedule Only)</strong>. 
 		These may be of interest for printing or otherwise saving the schedule.</li>
-    <li>Note: If you've clicked several "All" choices, and you choose 
-		<strong>“Show Mine and Unscheduled”</strong>, the resulting table can be very large. 
-		Checking all of the "All" choices creates a table of about 10,000 lines. 
-		Consider limiting your search to something manageable, or using one of 
-		buttons that does not include open slots.</li>
 </ul>
 
 <h2>3. Booking Your Time</h2>
 <ul>
-    <li>In the list of results, you’ll see each slot’s date, time, band, and mode.</li>
+    <li>In the list of results, you’ll see each slot’s date and time, and whether it's scheduled or open.</li>
     <li>Click the checkboxes for any slots you want to book.</li>
+    <li>Choose a band and mode you will operate in that slot.</li>
     <li>Optionally choose a <strong>club station</strong> if you'll be using one — only one person can reserve a club station per time slot.</li>
     <li>Add any optional notes you'd like to include with your booking.</li>
     <li>Click <strong>“Add Selected Slots”</strong> to finalize your signup.</li>

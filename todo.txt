@@ -1,5 +1,14 @@
 Scheduler todo
 
+Bugs:
+
+delete/add checkboxes should not show if delete/add button not also shown
+
+todo:
+show days with date
+uncheck "all" if some other boxes checked
+color odd/even lines
+
 make behavior of ALL selection consistent
 externalize time range definitions
 admin screen, admin users
