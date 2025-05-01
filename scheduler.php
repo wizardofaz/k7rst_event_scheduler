@@ -41,22 +41,50 @@ $complete_calendar = false;
 $scheduled_only = false;
 $table_rows = [];
 
-// First load (GET request), no form submission yet
+// This code just relieves the user from unchecking 'all' when selecting something less
+// There's probably a less arcane way ...
+/* this block of commented out code does not behave well.... for now the user has to just deal with it
 if (!isset($_POST['time_slots'])) {
+	log_msg(DEBUG_VERBOSE, "NOPOST: No time_slots in \$_POST, setting time_slots['all']");
     // Set default selection for 'time_slots' to 'all' (if not set already)
-    $_POST['time_slots'] = ['all'];  // Default to "All" checked
-}
-
-// Handle form submission (POST request)
-if (isset($_POST['time_slots'])) {
-    // If 'All' is selected and other time slots are selected, do nothing (keep 'All')
+    $_POST['time_slots'] = ['all'];  // Default to "All" checked when first loaded
+} elseif (isset($_POST['time_slots'])) { 
+	// Handle form submission (POST request)
+    
     if (in_array('all', $_POST['time_slots'])) {
-        // 'All' stays checked, even if other time slots are selected
-    } elseif (count($_POST['time_slots']) > 1) {
-        // Remove 'All' from the selection if other time slots are selected
-        $_POST['time_slots'] = array_diff($_POST['time_slots'], ['all']);
+		// If 'All' is selected and no other time slots are selected, do nothing (keep 'All')
+		if (count($_POST['time_slots']) == 1) {
+        	// 'All' stays checked
+			log_msg(DEBUG_VERBOSE, "POST: 'all' checked alone, leaving it alone");
+    	} else {
+	        // Remove 'All' from the selection if other time slots are selected
+			log_msg(DEBUG_VERBOSE, "POST: 'all' checked with others, uncheck 'all'");
+    	    $_POST['time_slots'] = array_diff($_POST['time_slots'], ['all']);
+		}
     }
 }
+
+if (!isset($_POST['days_of_week'])) {
+	log_msg(DEBUG_VERBOSE, "NOPOST: No days_of_week in \$_POST, setting days_of_week['all']");
+    // Set default selection for 'days_of_week' to 'all' (if not set already)
+    $_POST['days_of_week'] = ['all'];  // Default to "All" checked when first loaded
+} elseif (isset($_POST['days_of_week'])) { 
+	// Handle form submission (POST request)
+    
+    if (in_array('all', $_POST['days_of_week'])) {
+		// If 'All' is selected and no other time slots are selected, do nothing (keep 'All')
+		if (count($_POST['days_of_week']) == 1) {
+        	// 'All' stays checked
+			log_msg(DEBUG_VERBOSE, "POST: 'all' checked alone, leaving it alone");
+    	} else {
+	        // Remove 'All' from the selection if other time slots are selected
+			log_msg(DEBUG_VERBOSE, "POST: 'all' checked with others, uncheck 'all'");
+    	    $_POST['days_of_week'] = array_diff($_POST['days_of_week'], ['all']);
+		}
+    }
+}
+
+ */
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $op_call_input = strtoupper(trim($_POST['op_call'] ?? ''));
@@ -81,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$_SESSION['most_recent_show'] = 'scheduled_only';
 	}
 
-    log_msg(DEBUG_VERBOSE, "🧪 Incoming POST: " . json_encode($_POST));
+    log_msg(DEBUG_DEBUG, "🧪 Incoming POST: " . json_encode($_POST));
     log_msg(DEBUG_VERBOSE, "🧪 Session authenticated_users: " . json_encode($_SESSION['authenticated_users'] ?? []));
     log_msg(DEBUG_INFO, "🧪 op_call_input: $op_call_input");
 	log_msg(DEBUG_VERBOSE, "🧪 most_recent_show: " . $_SESSION['most_recent_show']);
@@ -304,7 +332,7 @@ if (($authorized || !$requires_authentication) && $_SERVER['REQUEST_METHOD'] ===
             }
         }
     }
-	log_msg(DEBUG_VERBOSE, "Formatting page with result: " . json_encode($table_rows));
+	log_msg(DEBUG_DEBUG, "Formatting page with result: " . json_encode($table_rows));
 }
 
 ?>
@@ -491,14 +519,30 @@ trigger_error("Remember to turn off logging when finished debugging", E_USER_WAR
 			<th>Select</th><th>Date</th><th>Time</th><th>Band</th><th>Mode</th>
 			<th>Club Station</th><th>Notes</th><th>Status</th>
 		</tr>
-		<?php foreach ($table_rows as $r):
+		<?php 
+		$prev_date_time = ''; 
+		$highlight_colors = ['#fff3cd','#cce5ff']; 
+		$highlight_color = ''; 
+		$highlight_booked_by_you = '#d9fdd3'; 
+		$highlight_index = 1; 
+		foreach ($table_rows as $r):
 			$key = "{$r['date']}|{$r['time']}|{$r['band']}|{$r['mode']}";
+			$date_object = new DateTime($r['date']);
+			$day_of_week = $date_object->format('D');  // 'D' returns a 3-letter abbreviation for the day
+			// Combine the day of the week with the original date
+			$formatted_date = $day_of_week . ' ' . $date;
+			$date_time = $r['date'] . '-' . $r['time'];
+			if ($date_time != $prev_date_time) {
+				$highlight_index = ($highlight_index + 1) % 2;
+				$highlight_color = $highlight_colors[$highlight_index];
+				$prev_date_time = $date_time;
+			}
 			$status = 'Open';
 			if ($r['op']) {
 				$status = ($r['op'] === $op_call_input) ? 'Booked by you' : "Booked by {$r['op']} {$r['name']}";
 			}
 		?>
-		<tr style="<?= $status === 'Booked by you' ? 'background-color: #d9fdd3;' : '' ?>">
+		<tr style="<?= $status === 'Booked by you' ? 'background-color:' . $highlight_booked_by_you : 'background-color:' . $highlight_color ?>">
 			<td>
 				<?php if ($status === 'Open'): ?>
 					<input type="checkbox" name="slots[]" value="<?= $key ?>">
@@ -508,7 +552,7 @@ trigger_error("Remember to turn off logging when finished debugging", E_USER_WAR
 					--
 				<?php endif; ?>
 			</td>
-			<td><?= $r['date'] ?></td>
+			<td><?= $formatted_date ?></td>
 			<td><?= $r['time'] ?></td>
 			<td>
 				<?php if ($status === 'Open'): ?>
@@ -542,7 +586,7 @@ trigger_error("Remember to turn off logging when finished debugging", E_USER_WAR
 					<select name="club_station[<?= $key ?>]">
 						<option value="">(Own Station)</option>
 						<?php
-						$res = db_check_club_station_for_date_time($db_conn, $date, $time);
+						$res = db_check_club_station_for_date_time($db_conn, $r['date'], $r['time']);
 						$used = [];
 						while ($res && $row2 = $res->fetch_assoc()) {
 							if (!empty($row2['club_station'])) $used[] = $row2['club_station'];

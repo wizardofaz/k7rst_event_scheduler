@@ -35,7 +35,7 @@ function db_check_club_station_in_use($conn, $date, $time, $club_station) {
 }
 
 function db_check_club_station_for_date_time($conn, $date, $time) {
-    return $conn->query("SELECT club_station FROM schedule WHERE date='{$r['date']}' AND time='{$r['time']}'");
+    return $conn->query("SELECT club_station FROM schedule WHERE date='{$date}' AND time='{$time}'");
 }
 
 function db_check_band_mode_conflict($conn, $date, $time, $band, $mode) {

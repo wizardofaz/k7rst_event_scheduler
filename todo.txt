@@ -3,18 +3,15 @@ Scheduler todo
 Bugs:
 
 delete/add checkboxes should not show if delete/add button not also shown
+logout happens when it shouldn't
 
 todo:
-show days with date
 uncheck "all" if some other boxes checked
-color odd/even lines
+make heatmap work
 
 make behavior of ALL selection consistent
 externalize time range definitions
 admin screen, admin users
-limit displayed result to xxx (from config) - unless using show all scheduled
-a station should not be able to reserve the same time slot for more than one band/mode
-re-display table after add/delete
 if logged in, clicking a show button logs out (and otherwise does the right thing)
 type call+name press enter fetches the call's current schedule
 adding to schedule without password not possible (no button)

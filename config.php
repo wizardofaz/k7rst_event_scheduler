@@ -1,5 +1,5 @@
 <?php
-define('DEBUG_LEVEL', 5);
+define('DEBUG_LEVEL', 3);
 
 define('DB_SERVER', '127.0.0.1:3306');
 define('DB_NAME', 'u419577197_CACTUS_sched');
