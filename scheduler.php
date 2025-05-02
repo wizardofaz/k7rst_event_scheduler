@@ -341,19 +341,20 @@ if (($authorized || !$requires_authentication) && $_SERVER['REQUEST_METHOD'] ===
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CACTUS Operator Schedule Signup</title>
+    <title><?php echo EVENT_NAME ?> Operator Schedule Signup</title>
     <link rel="icon" href="img/cropped-RST-Logo-1-32x32.jpg">
 	<link rel="stylesheet" href="scheduler.css">
 
 </head>
 <body>
 <img  src="img/RST-header-768x144.jpg" alt="Radio Society of Tucson K7RST" /><br><br>
+
 <?php
 // Only log debugging info after the page content is rendered
-trigger_error("Remember to turn off logging when finished debugging", E_USER_WARNING);
-
+if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished debugging (" . CODE_VERSION . ")", E_USER_WARNING);}
 ?>
-<h2>CACTUS Operator Schedule Signup <a href="how-do-i-use-this.php" target="_blank">(How do I use this?)</a></h2>
+
+<h2><?php echo EVENT_NAME ?> Operator Schedule Signup <a href="how-do-i-use-this.php" target="_blank">(How do I use this?)</a></h2>
 
 <?php if ($password_error): ?>
     <p style="color:red; font-weight:bold;"><?= $password_error ?></p>
@@ -417,6 +418,7 @@ trigger_error("Remember to turn off logging when finished debugging", E_USER_WAR
 		<?php endif; ?>
     </div>
 
+	<!-- TODO: No longer using checkboxes for band and mode, DELETE THIS BLOCK -->
     <!-- <div class="section">
         <strong>Select Bands:</strong><br>
         <label><input type="checkbox" onclick="toggleAll(this, 'bands[]')"> All</label>
@@ -483,24 +485,26 @@ trigger_error("Remember to turn off logging when finished debugging", E_USER_WAR
 	<div class="section">
         <strong>What parts of the day would you like to operate?</strong><br>
         <?php
-        $time_opts = [
-            'all' => 'Any/All',
-            'midnight_to_6' => 'Midnight–6am',
-            '6_to_noon' => '6am–Noon',
-            'noon_to_6' => 'Noon–6pm',
-            '6_to_midnight' => '6pm–Midnight'
-        ];
+		// $time_opts defined in config.php
         foreach ($time_opts as $val => $label): ?>
-            <label><input type="checkbox" name="time_slots[]" value="<?= $val ?>" <?= in_array($val, $time_slots) ? 'checked' : '' ?>> <?= $label ?></label>
+			<?php if ($val == 'all'): ?>
+            	<label><input type="checkbox" class="select-all" data-group="time_slots" name="time_slots[]" value="<?= $val ?>" <?= in_array($val, $time_slots ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
+			<?php else: ?>
+				<label><input type="checkbox" name="time_slots[]" value="<?= $val ?>" <?= in_array($val, $time_slots ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
+			<?php endif; ?>	
         <?php endforeach; ?>
     </div>
 
     <div class="section">
         <strong>Which days of the week?</strong><br>
         <?php
-        $day_opts = ['all' => 'Any/All', '0' => 'Sun', '1' => 'Mon', '2' => 'Tue', '3' => 'Wed', '4' => 'Thu', '5' => 'Fri', '6' => 'Sat'];
+		// $day_opts defined in config.php
         foreach ($day_opts as $val => $label): ?>
-            <label><input type="checkbox" name="days_of_week[]" value="<?= $val ?>" <?= in_array($val, $days_of_week) ? 'checked' : '' ?>> <?= $label ?></label>
+			<?php if ($val == 'all'): ?>
+            	<label><input type="checkbox" class="select-all" data-group="days_of_week" name="days_of_week[]" value="<?= $val ?>" <?= in_array($val, $days_of_week ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
+			<?php else: ?>
+				<label><input type="checkbox" name="days_of_week[]" value="<?= $val ?>" <?= in_array($val, $days_of_week ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
+			<?php endif; ?>	
         <?php endforeach; ?>
     </div>
 
@@ -526,20 +530,24 @@ trigger_error("Remember to turn off logging when finished debugging", E_USER_WAR
 		$highlight_booked_by_you = '#d9fdd3'; 
 		$highlight_index = 1; 
 		foreach ($table_rows as $r):
-			$key = "{$r['date']}|{$r['time']}|{$r['band']}|{$r['mode']}";
-			$date_object = new DateTime($r['date']);
+			$date = $r['date'];
+			$time = $r['time'];
+			$op = $r['op'];
+			$name = $r['name'];
+			$key = "{$date}|{$time}|{$band}|{$mode}";
+			$date_object = new DateTime($date);
 			$day_of_week = $date_object->format('D');  // 'D' returns a 3-letter abbreviation for the day
 			// Combine the day of the week with the original date
 			$formatted_date = $day_of_week . ' ' . $date;
-			$date_time = $r['date'] . '-' . $r['time'];
+			$date_time = $date . '-' . $time;
 			if ($date_time != $prev_date_time) {
 				$highlight_index = ($highlight_index + 1) % 2;
 				$highlight_color = $highlight_colors[$highlight_index];
 				$prev_date_time = $date_time;
 			}
 			$status = 'Open';
-			if ($r['op']) {
-				$status = ($r['op'] === $op_call_input) ? 'Booked by you' : "Booked by {$r['op']} {$r['name']}";
+			if ($op) {
+				$status = ($op === $op_call_input) ? 'Booked by you' : "Booked by {$op} {$name}";
 			}
 		?>
 		<tr style="<?= $status === 'Booked by you' ? 'background-color:' . $highlight_booked_by_you : 'background-color:' . $highlight_color ?>">
@@ -635,7 +643,8 @@ trigger_error("Remember to turn off logging when finished debugging", E_USER_WAR
 	</form>
 <?php endif; ?>
 
-<script>
+<!-- TODO: This function not currently in use but leave for now -->
+<!-- <script>
 function toggleAll(master, groupName) {
     const checkboxes = document.querySelectorAll(`input[name="${groupName}"]`);
     checkboxes.forEach(cb => {
@@ -643,7 +652,7 @@ function toggleAll(master, groupName) {
     });
 }
 </script>
-
+ -->
 <script>
 setTimeout(() => {
     // Hide any/all "-flash" messages after 5 seconds
@@ -654,6 +663,37 @@ setTimeout(() => {
         flash.style.display = 'none';
     });
 }, 5000); // Hide after 5 seconds
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Select all checkboxes and the 'All' checkbox
+    const allCheckbox = document.querySelector('.select-all[data-group="time_slots"]');
+    const timeCheckboxes = document.querySelectorAll('input[name="time_slots[]"]');
+    
+    // Handler for 'All' checkbox
+    allCheckbox.addEventListener('change', function() {
+        // If 'All' is checked, check all time checkboxes
+        if (allCheckbox.checked) {
+            timeCheckboxes.forEach(cb => cb.checked = true);
+        } else {
+            // If 'All' is unchecked, uncheck all time checkboxes
+            timeCheckboxes.forEach(cb => cb.checked = false);
+        }
+    });
+
+	// Handler for other checkboxes
+	timeCheckboxes.forEach(cb => {
+		cb.addEventListener('change', function() {
+			// If any checkbox (other than 'All') is checked or unchecked, uncheck 'All'
+			if (Array.from(timeCheckboxes).some(c => c.checked)) {
+				allCheckbox.checked = false; // Uncheck 'All'
+			} else {
+				allCheckbox.checked = true; // If none are checked, check 'All'
+			}
+		});
+	});
+});
 </script>
 
 </body>

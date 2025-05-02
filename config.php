@@ -1,10 +1,21 @@
 <?php
-define('DEBUG_LEVEL', 3);
+
+// swap these three lines to change between alpha & beta versions
+// define('CODE_VERSION', 'beta');
+// define('DB_NAME', 'u419577197_CACTUS_sched');
+// define('DB_USER', 'u419577197_cactus');
+
+define('CODE_VERSION', 'alpha');
+define('DB_NAME', 'u419577197_CACTUS_alpha');
+define('DB_USER', 'u419577197_cactus_alpha');
 
 define('DB_SERVER', '127.0.0.1:3306');
-define('DB_NAME', 'u419577197_CACTUS_sched');
-define('DB_USER', 'u419577197_cactus');
 define('DB_PASSWORD', 'RST_k7rst');
+
+require_once 'logging.php';
+define('DEBUG_LEVEL', DEBUG_VERBOSE);
+
+define('EVENT_NAME', '2025 CACTUS');
 
 define('EVENT_START_DATE', '2025-11-20');
 define('EVENT_END_DATE', '2025-11-30');
@@ -19,12 +30,21 @@ define('WEEKDAY_NIGHT_HEAT', 1);  // Heat value for weekday nights
 define('BAND_HEAT_DAY', 2);    // Heat value for certain bands during the day
 define('BAND_HEAT_NIGHT', 1);  // Heat value for certain bands during the night
 
-
 $bands_list = ['160m','80m','40m','30m','20m','17m','15m','12m','10m','6m','2m','70cm'];
 $modes_list = ['CW','SSB','DIG','OTHER'];
 
 $club_stations = ['N7NBV Corral', 'Days In The Park'];
 
+$day_opts = ['all' => 'Any/All', '0' => 'Sun', '1' => 'Mon', '2' => 'Tue', '3' => 'Wed', '4' => 'Thu', '5' => 'Fri', '6' => 'Sat'];
+
+// time_opts and times_by_slot must be kept consistent with each other
+$time_opts = [
+    'all' => 'Any/All',
+    'midnight_to_6' => 'Midnight–6am',
+    '6_to_noon' => '6am–Noon',
+    'noon_to_6' => 'Noon–6pm',
+    '6_to_midnight' => '6pm–Midnight'
+];
 $times_by_slot = [
     'midnight_to_6' => ['00:00:00','01:00:00','02:00:00','03:00:00','04:00:00','05:00:00'],
     '6_to_noon' => ['06:00:00','07:00:00','08:00:00','09:00:00','10:00:00','11:00:00'],
