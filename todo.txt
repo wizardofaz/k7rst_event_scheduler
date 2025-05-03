@@ -6,8 +6,7 @@ delete/add checkboxes should not show if delete/add button not also shown
 logout happens when it shouldn't
 
 todo:
-checkbox states are not preserved from post to post
-uncheck "all" if some other boxes checked
+handle enter key to show just my schedule, or maybe just log in
 change delete to a dropdown list edit/delete
 make heatmap work
 
@@ -23,4 +22,6 @@ in resulting schedule table day of week is correct but dates are all the same, e
 move time_opts and day_opts to config.php
 selecting all doesn't work
 default checked state of "all" on initial load isn't working
+checkbox states are not preserved from post to post
+uncheck "all" if some other boxes checked
 

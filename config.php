@@ -1,5 +1,8 @@
 <?php
 
+require_once 'logging.php';
+define('DEBUG_LEVEL', DEBUG_DEBUG);
+
 // swap these three lines to change between alpha & beta versions
 // define('CODE_VERSION', 'beta');
 // define('DB_NAME', 'u419577197_CACTUS_sched');
@@ -11,9 +14,6 @@ define('DB_USER', 'u419577197_cactus_alpha');
 
 define('DB_SERVER', '127.0.0.1:3306');
 define('DB_PASSWORD', 'RST_k7rst');
-
-require_once 'logging.php';
-define('DEBUG_LEVEL', DEBUG_VERBOSE);
 
 define('EVENT_NAME', '2025 CACTUS');
 
@@ -30,11 +30,12 @@ define('WEEKDAY_NIGHT_HEAT', 1);  // Heat value for weekday nights
 define('BAND_HEAT_DAY', 2);    // Heat value for certain bands during the day
 define('BAND_HEAT_NIGHT', 1);  // Heat value for certain bands during the night
 
-$bands_list = ['160m','80m','40m','30m','20m','17m','15m','12m','10m','6m','2m','70cm'];
+$bands_list = ['160m','80m','40m','30m','20m','17m','15m','12m','10m','6m','2m','70cm', 'other'];
 $modes_list = ['CW','SSB','DIG','OTHER'];
 
 $club_stations = ['N7NBV Corral', 'Days In The Park'];
 
+// day_opts and time_opts should always include 'all' as the first choice
 $day_opts = ['all' => 'Any/All', '0' => 'Sun', '1' => 'Mon', '2' => 'Tue', '3' => 'Wed', '4' => 'Thu', '5' => 'Fri', '6' => 'Sat'];
 
 // time_opts and times_by_slot must be kept consistent with each other

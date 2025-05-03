@@ -30,8 +30,6 @@ $op_call_input = '';
 $op_name_input = '';
 $op_password_input = '';
 $authorized = false; // edit operation permitted, not necessarily logged in
-$bands = [];
-$modes = [];
 $start_date = '';
 $end_date = '';
 $time_slots = ['all']; // default to all times of the day if not a POST
@@ -41,65 +39,19 @@ $complete_calendar = false;
 $scheduled_only = false;
 $table_rows = [];
 
-// This code just relieves the user from unchecking 'all' when selecting something less
-// There's probably a less arcane way ...
-/* this block of commented out code does not behave well.... for now the user has to just deal with it
-if (!isset($_POST['time_slots'])) {
-	log_msg(DEBUG_VERBOSE, "NOPOST: No time_slots in \$_POST, setting time_slots['all']");
-    // Set default selection for 'time_slots' to 'all' (if not set already)
-    $_POST['time_slots'] = ['all'];  // Default to "All" checked when first loaded
-} elseif (isset($_POST['time_slots'])) { 
-	// Handle form submission (POST request)
-    
-    if (in_array('all', $_POST['time_slots'])) {
-		// If 'All' is selected and no other time slots are selected, do nothing (keep 'All')
-		if (count($_POST['time_slots']) == 1) {
-        	// 'All' stays checked
-			log_msg(DEBUG_VERBOSE, "POST: 'all' checked alone, leaving it alone");
-    	} else {
-	        // Remove 'All' from the selection if other time slots are selected
-			log_msg(DEBUG_VERBOSE, "POST: 'all' checked with others, uncheck 'all'");
-    	    $_POST['time_slots'] = array_diff($_POST['time_slots'], ['all']);
-		}
-    }
-}
-
-if (!isset($_POST['days_of_week'])) {
-	log_msg(DEBUG_VERBOSE, "NOPOST: No days_of_week in \$_POST, setting days_of_week['all']");
-    // Set default selection for 'days_of_week' to 'all' (if not set already)
-    $_POST['days_of_week'] = ['all'];  // Default to "All" checked when first loaded
-} elseif (isset($_POST['days_of_week'])) { 
-	// Handle form submission (POST request)
-    
-    if (in_array('all', $_POST['days_of_week'])) {
-		// If 'All' is selected and no other time slots are selected, do nothing (keep 'All')
-		if (count($_POST['days_of_week']) == 1) {
-        	// 'All' stays checked
-			log_msg(DEBUG_VERBOSE, "POST: 'all' checked alone, leaving it alone");
-    	} else {
-	        // Remove 'All' from the selection if other time slots are selected
-			log_msg(DEBUG_VERBOSE, "POST: 'all' checked with others, uncheck 'all'");
-    	    $_POST['days_of_week'] = array_diff($_POST['days_of_week'], ['all']);
-		}
-    }
-}
-
- */
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $op_call_input = strtoupper(trim($_POST['op_call'] ?? ''));
     $op_name_input = trim($_POST['op_name'] ?? '');
     $op_password_input = trim($_POST['op_password'] ?? '');
-    $bands = $_POST['bands'] ?? [];
-    $modes = $_POST['modes'] ?? [];
     $start_date = $_POST['start_date'] ?? '';
     $end_date = $_POST['end_date'] ?? '';
     $time_slots = $_POST['time_slots'] ?? [];
     $days_of_week = $_POST['days_of_week'] ?? [];
 
 	// remember the most recent show button so it can be reused after an add/delete
+	// TODO this doesn't work: if (isset($_POST['mine_only']) || isset($_POST['enter_pressed'])) {
 	if (isset($_POST['mine_only'])) {
-		$mine_only = true;
+			$mine_only = true;
 		$_SESSION['most_recent_show'] = 'mine_only';
 	} elseif (isset($_POST['complete_calendar'])) {
 		$complete_calendar = true;
@@ -300,8 +252,6 @@ if (($authorized || !$requires_authentication) && $_SERVER['REQUEST_METHOD'] ===
 
 		log_msg(DEBUG_VERBOSE, "✅ dates[]: " . json_encode($dates));
 		log_msg(DEBUG_VERBOSE, "✅ times[]: " . json_encode($times));
-		log_msg(DEBUG_VERBOSE, "✅ bands[]: " . json_encode($bands));
-		log_msg(DEBUG_VERBOSE, "✅ modes[]: " . json_encode($modes));
 
         foreach ($dates as $date) {
             foreach ($times as $time) {
@@ -418,26 +368,6 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 		<?php endif; ?>
     </div>
 
-	<!-- TODO: No longer using checkboxes for band and mode, DELETE THIS BLOCK -->
-    <!-- <div class="section">
-        <strong>Select Bands:</strong><br>
-        <label><input type="checkbox" onclick="toggleAll(this, 'bands[]')"> All</label>
-        <?php foreach ($bands_list as $index => $b): ?>
-			<?php if ($index % 5 == 0): ?>
-				<br>
-			<?php endif ?>
-            <label><input type="checkbox" name="bands[]" value="<?= $b ?>" <?= in_array($b, $bands) ? 'checked' : '' ?>> <?= $b ?></label>
-		<?php endforeach; ?>
-    </div>
-
-    <div class="section">
-        <strong>Select Modes:</strong><br>
-        <label><input type="checkbox" onclick="toggleAll(this, 'modes[]')"> All</label>
-        <?php foreach ($modes_list as $m): ?>
-            <label><input type="checkbox" name="modes[]" value="<?= $m ?>" <?= in_array($m, $modes) ? 'checked' : '' ?>> <?= $m ?></label>
-        <?php endforeach; ?>
-    </div> -->
-
 	<div class="section">
 		<strong>Event Date Range:</strong> Starts <strong><?= htmlspecialchars($event_start_date) ?></strong> &nbsp;&nbsp;Ends <strong><?= htmlspecialchars($event_end_date) ?></strong></p>
 		
@@ -482,6 +412,7 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 	}
 	</script>
 	
+	<!-- See JavaScript handlers at the bottom for how dynamic checkbox behavior is handled in these two <div> sections -->
 	<div class="section">
         <strong>What parts of the day would you like to operate?</strong><br>
         <?php
@@ -508,6 +439,7 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
         <?php endforeach; ?>
     </div>
 
+	<!-- See JavaScript handlers at the bottom for how enter key is handled -->
     <div class="section">
 		<strong>Choose what schedule slots to show (filtered by selections above):</strong><br><br>
 		<input type="hidden" name="enter_pressed" value="Enter Pressed">
@@ -666,33 +598,47 @@ setTimeout(() => {
 </script>
 
 <script>
+// dynamic behavior for checkbox lists that include an "all" choice
 document.addEventListener('DOMContentLoaded', function() {
-    // Select all checkboxes and the 'All' checkbox
-    const allCheckbox = document.querySelector('.select-all[data-group="time_slots"]');
-    const timeCheckboxes = document.querySelectorAll('input[name="time_slots[]"]');
-    
-    // Handler for 'All' checkbox
-    allCheckbox.addEventListener('change', function() {
-        // If 'All' is checked, check all time checkboxes
-        if (allCheckbox.checked) {
-            timeCheckboxes.forEach(cb => cb.checked = true);
-        } else {
-            // If 'All' is unchecked, uncheck all time checkboxes
-            timeCheckboxes.forEach(cb => cb.checked = false);
-        }
-    });
+	// Apply the behavior to all groups (time_slots, days_of_week, etc.)
+	document.querySelectorAll('.select-all').forEach((selectAllCheckbox) => {
+		selectAllCheckbox.addEventListener('change', function() {
+			const groupName = this.getAttribute('data-group');
+			const checkboxes = document.querySelectorAll(`input[name="${groupName}[]"]`);
 
-	// Handler for other checkboxes
-	timeCheckboxes.forEach(cb => {
-		cb.addEventListener('change', function() {
-			// If any checkbox (other than 'All') is checked or unchecked, uncheck 'All'
-			if (Array.from(timeCheckboxes).some(c => c.checked)) {
-				allCheckbox.checked = false; // Uncheck 'All'
-			} else {
-				allCheckbox.checked = true; // If none are checked, check 'All'
+			// If the 'All' checkbox is checked, check all others
+			checkboxes.forEach(cb => {
+				cb.checked = this.checked;
+			});
+		});
+	});
+
+	// When any other checkbox is clicked, uncheck 'All'
+	document.querySelectorAll('input[type="checkbox"]:not(.select-all)').forEach((checkbox) => {
+		checkbox.addEventListener('change', function() {
+			const groupName = this.getAttribute('name').replace('[]', ''); // e.g., time_slots or days_of_week
+			const allCheckbox = document.querySelector(`input[data-group="${groupName}"].select-all`);
+
+			// If any other checkbox is unchecked, uncheck 'All'
+			if (this.checked === false) {
+				allCheckbox.checked = false;
 			}
 		});
 	});
+
+ 	// Listen for the Enter key press
+	document.querySelector('form').addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            // Prevent form submission by default
+            //event.preventDefault();
+
+            // Set the hidden input field to indicate Enter was pressed
+            document.getElementById('enter_pressed').value = 'Enter Pressed';
+
+	        // Optionally, you can trigger a specific submit button based on your logic
+            // document.querySelector('input[name="mine_only"]').click(); 
+        }
+    }); 
 });
 </script>
 
