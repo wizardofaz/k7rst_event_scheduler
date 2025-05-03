@@ -54,8 +54,8 @@ function db_add_schedule_line($conn, $date, $time, $call, $name, $band, $mode, $
     $stmt->close();
 }
 
-function db_delete_schedule_line($conn, $date, $time, $band, $mode, $op_call_input) {
-    $conn->query("DELETE FROM schedule WHERE date='$date' AND time='$time' AND band='$band' AND mode='$mode' AND op_call='$op_call_input'");
+function db_delete_schedule_line($conn, $date, $time, $band, $mode, $call) {
+    return $conn->query("DELETE FROM schedule WHERE date='$date' AND time='$time' AND band='$band' AND mode='$mode' AND op_call='$call'");
 }
 
 ?>

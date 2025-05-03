@@ -77,26 +77,20 @@ if (!isset($_SESSION['authenticated_users'])) {
     $_SESSION['authenticated_users'] = [];
 }
 
-// 🔐 Authentication check using operator_passwords table
-$requires_authentication = isset($_POST['add_selected']) || isset($_POST['delete_selected']);
-
 // Only check password if it's an operation that requires password authentication
 // BUT even those operations only require a password if the operator has given one at least once
+// Authenitcation means correct password has been entered, or the user has no password
+$requires_authentication = isset($_POST['add_selected']) || isset($_POST['delete_selected']);
 $_SESSION['logged_in'] = false;
 
-// do the password and login processing if the operation requires it, or if a password is given
-if (($requires_authentication || $op_password_input) && $op_call_input) {  
-	// If there is an input password 
-	//       if there is a database password 
-	//           if input matches database good and done
-	//           else fail and done
-	//       else good, store new password, done
-	// Else (no input password was typed)
-	// 		If user is already authenticated we're good (password previously entered and checked)
-	//      else if there is no database password we're good (password not required if one has never been entered)
-	//		else fail (no password entered but there is one in the database)
-
-    log_msg(DEBUG_INFO, "🔍 Password check triggered for $op_call_input");
+// TODO this password/login processing is a mess, rationalize it
+if ($op_call_input && $_SESSION['authenticated_users'][$op_call_input]) {
+	// this user successfully logged in earlier in this session - keep them logged in
+	$_SESSION['logged_in'] = true;
+	$authorized = true;
+} elseif (($requires_authentication || $op_password_input) && $op_call_input) {  
+	// do the password and login processing if the operation requires it, or if a password is given
+	log_msg(DEBUG_INFO, "🔍 Password check triggered for $op_call_input");
 	
 	// first try to look up the Password
 	$stored_pw = db_get_operator_password($db_conn, $op_call_input);
@@ -106,11 +100,13 @@ if (($requires_authentication || $op_password_input) && $op_call_input) {
 		log_msg(DEBUG_INFO, "✅ No non-blank password exists in database for $op_call_input");
 	}
 
-	// $_SESSION['login_flash'] = true; // triggers showing flash logged in message (see below)
-	// When the logged-in flash message has been displayed, $_SESSION['login_shown'] = true; 
-	// will be done by html section
-	// $_SESSION['logged_in'] = true indicates actual logged in state, with a password
-	if ($op_password_input !== '') { // password was entered
+	if (!$db_pw_exists && $op_password_input =='') {
+		log_msg(DEBUG_INFO, "✅ No password given, no password in db; $op_call_input is logged in");
+		$_SESSION['authenticated_users'][$op_call_input] = true;
+		$_SESSION['login_flash'] = true;
+		$_SESSION['logged_in'] = true;
+		$authorized = true;
+	} elseif ($op_password_input !== '') { // password was entered
         log_msg(DEBUG_INFO, "✅ Input password given for $op_call_input is $op_password_input");
 		if($db_pw_exists) { // there is a non-blank entry in the database password table 
 			log_msg(DEBUG_INFO, "✅ Password from database for $op_call_input is $stored_pw");
@@ -137,14 +133,14 @@ if (($requires_authentication || $op_password_input) && $op_call_input) {
             $authorized = true;
             log_msg(DEBUG_INFO, "✅ Login (new pw) for $op_call_input");
 		}
-	} else { // no password was entered 
+	} else { // no password was entered but db password exists
 	    if (!empty($_SESSION['authenticated_users'][$op_call_input])) {
+			// user already logged in this session
 			log_msg(DEBUG_INFO, "✅ Already authenticated in session: $op_call_input");
+			$_SESSION['logged_in'] = true;
 			$authorized = true;
-		} elseif (!db_pw_exists) {
-			log_msg(DEBUG_INFO, "✅ No password required if one has never been entered for $op_call_input");
-			$authorized = true;
-		} else { // no password entered but db password exists - fail
+		} else { 
+			// no password entered but db password exists and not previously logged in - fail
 			$_SESSION['authenticated_users'][$op_call_input] = false;
 			$_SESSION['login_flash'] = false;
 			$_SESSION['logged_in'] = false;
@@ -201,10 +197,12 @@ if (($authorized || !$requires_authentication) && $_SERVER['REQUEST_METHOD'] ===
     }
 
     if (isset($_POST['delete_selected']) && isset($_POST['delete_slots'])) {
-		log_msg(DEBUG_INFO, "✅ processing schedule delete");
+		log_msg(DEBUG_INFO, "✅ processing schedule delete of " . json_encode($_POST['delete_slots']));
         foreach ($_POST['delete_slots'] as $slot) {
             list($date, $time, $band, $mode) = explode('|', $slot);
-			db_delete_schedule_line($db_conn, $date, $time, $band, $mode, $op_call_input);
+			log_msg(DEBUG_DEBUG, "✅ processing delete: $date $time $band $mode $op_call_input");
+			$deleted = db_delete_schedule_line($db_conn, $date, $time, $band, $mode, $op_call_input);
+			log_msg(DEBUG_DEBUG, "✅ delete result: " . $deleted);
         }
 
 		// trigger the display of the schedule asif the most recently used show button
@@ -466,6 +464,8 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 			$time = $r['time'];
 			$op = $r['op'];
 			$name = $r['name'];
+			$band = $r['band'];
+			$mode = $r['mode'];
 			$key = "{$date}|{$time}|{$band}|{$mode}";
 			$date_object = new DateTime($date);
 			$day_of_week = $date_object->format('D');  // 'D' returns a 3-letter abbreviation for the day
