@@ -1,7 +1,7 @@
 <?php
 
 require_once 'logging.php';
-define('DEBUG_LEVEL', DEBUG_DEBUG);
+define('DEBUG_LEVEL', DEBUG_INFO);
 
 // swap these three lines to change between alpha & beta versions
 // define('CODE_VERSION', 'beta');

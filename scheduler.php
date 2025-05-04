@@ -7,20 +7,22 @@ ini_set('session.gc_maxlifetime', 7200);
 session_set_cookie_params(7200);
 session_start();
 
-log_msg(DEBUG_VERBOSE, "Session start - Current session data: " . json_encode($_SESSION));
+// Some useful unicode symbols for tagging log messages:
+// ✅ ✔️ ❌ ⚠️ ℹ️ 🧪 🔍 🚨 📢 📣 📂 🗂️ 🎉 🏆 🕒 📅 💡 🔧 🧰
+
+log_msg(DEBUG_VERBOSE, "📢 Session start - Current session data: " . json_encode($_SESSION));
 
 if (isset($_GET['logout'])) {
-    log_msg(DEBUG_INFO, "🚪 Logging out...");
+
+    // Destroy the session and clear session variables
     session_destroy();
-    log_msg(DEBUG_INFO, "🚪 Session destroyed. POST was: " . json_encode($_POST));
 
-    unset($_POST['op_call']);
-    unset($_POST['op_name']);
-    unset($_POST['op_password']);
+    log_msg(DEBUG_INFO, "⚠️ Logout, session destroyed. POST was: " . json_encode($_POST));
 
+    // Redirect to the same page without the query string (removing ?logout)
     header("Location: " . strtok($_SERVER["REQUEST_URI"], '?'));
-	log_msg(DEBUG_INFO, "Session reset - Current session data after logout: " . json_encode($_SESSION));
-    exit;
+
+    exit; // Stop further script execution
 }
 
 $session_timeout_minutes = round(ini_get('session.gc_maxlifetime') / 60);
@@ -29,16 +31,21 @@ $session_timeout_minutes = round(ini_get('session.gc_maxlifetime') / 60);
 $op_call_input = '';
 $op_name_input = '';
 $op_password_input = '';
-$authorized = false; // edit operation permitted, not necessarily logged in
 $start_date = '';
 $end_date = '';
 $time_slots = ['all']; // default to all times of the day if not a POST
 $days_of_week = ['all']; // default to all days of week if not a POST
+
+// which button was clicked:
 $mine_only = false;
 $complete_calendar = false;
 $scheduled_only = false;
-$table_rows = [];
 
+$event_start_date = EVENT_START_DATE;
+$event_end_date = EVENT_END_DATE;
+$password_error = '';
+
+// collect form data
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $op_call_input = strtoupper(trim($_POST['op_call'] ?? ''));
     $op_name_input = trim($_POST['op_name'] ?? '');
@@ -61,103 +68,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$_SESSION['most_recent_show'] = 'scheduled_only';
 	}
 
-    log_msg(DEBUG_DEBUG, "🧪 Incoming POST: " . json_encode($_POST));
-    log_msg(DEBUG_VERBOSE, "🧪 Session authenticated_users: " . json_encode($_SESSION['authenticated_users'] ?? []));
-    log_msg(DEBUG_INFO, "🧪 op_call_input: $op_call_input");
-	log_msg(DEBUG_VERBOSE, "🧪 most_recent_show: " . $_SESSION['most_recent_show']);
+    log_msg(DEBUG_VERBOSE, "ℹ️ Incoming POST: " . json_encode($_POST));
+    log_msg(DEBUG_INFO, "ℹ️ Session authenticated_users: " . json_encode($_SESSION['authenticated_users'] ?? []));
+    log_msg(DEBUG_INFO, "ℹ️ op_call_input: $op_call_input");
+	log_msg(DEBUG_INFO, "ℹ️ most_recent_show: " . $_SESSION['most_recent_show']);
 }
 
 $db_conn = db_get_connection();
-
-$event_start_date = EVENT_START_DATE;
-$event_end_date = EVENT_END_DATE;
-$password_error = '';
 
 if (!isset($_SESSION['authenticated_users'])) {
     $_SESSION['authenticated_users'] = [];
 }
 
-// Only check password if it's an operation that requires password authentication
-// BUT even those operations only require a password if the operator has given one at least once
-// Authenitcation means correct password has been entered, or the user has no password
+// authentication not required for browsing
 $requires_authentication = isset($_POST['add_selected']) || isset($_POST['delete_selected']);
-$_SESSION['logged_in'] = false;
+$authorized = false; 
 
-// TODO this password/login processing is a mess, rationalize it
-if ($op_call_input && $_SESSION['authenticated_users'][$op_call_input]) {
-	// this user successfully logged in earlier in this session - keep them logged in
-	$_SESSION['logged_in'] = true;
-	$authorized = true;
-} elseif (($requires_authentication || $op_password_input) && $op_call_input) {  
-	// do the password and login processing if the operation requires it, or if a password is given
-	log_msg(DEBUG_INFO, "🔍 Password check triggered for $op_call_input");
-	
-	// first try to look up the Password
-	$stored_pw = db_get_operator_password($db_conn, $op_call_input);
-
-	$db_pw_exists = $stored_pw != '';
-	if (!$db_pw_exists) {
-		log_msg(DEBUG_INFO, "✅ No non-blank password exists in database for $op_call_input");
+// password and login handling
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+	if (!$op_call_input || !$op_name_input) {
+		// this should not be possible because of REQUIRED on this input fields
+		trigger_error("operator call & name required", E_USER_WARNING);
+		exit;
 	}
 
-	if (!$db_pw_exists && $op_password_input =='') {
-		log_msg(DEBUG_INFO, "✅ No password given, no password in db; $op_call_input is logged in");
-		$_SESSION['authenticated_users'][$op_call_input] = true;
-		$_SESSION['login_flash'] = true;
-		$_SESSION['logged_in'] = true;
+	// Login related variables:
+	// $_SESSION['authenticated_users'][$call]: table of users already authenticated in this session
+	// $_SESSION['login_flash']: when set true will trigger a short "logged in" message 
+	// $authorized: current user is authorized for db changes, pw input will be replaced with logout button
+	if (isset($_SESSION['authenticated_users'][$op_call_input]) && $_SESSION['authenticated_users'][$op_call_input]) {
+		// this user successfully logged in earlier in this session - keep them logged in
+		log_msg(DEBUG_INFO, "✅ $op_call_input has previously been authenticated");
 		$authorized = true;
-	} elseif ($op_password_input !== '') { // password was entered
-        log_msg(DEBUG_INFO, "✅ Input password given for $op_call_input is $op_password_input");
-		if($db_pw_exists) { // there is a non-blank entry in the database password table 
-			log_msg(DEBUG_INFO, "✅ Password from database for $op_call_input is $stored_pw");
-			if($stored_pw === $op_password_input) { // entered password matches database password 
-				$_SESSION['authenticated_users'][$op_call_input] = true;
-				$_SESSION['login_flash'] = true;
-				$_SESSION['logged_in'] = true;
-				$authorized = true;
-				log_msg(DEBUG_INFO, "✅ Login flash (good entered pw) for $op_call_input");
-			} else { // entered password does not match database password
-				$_SESSION['authenticated_users'][$op_call_input] = false;
-				$_SESSION['login_flash'] = false;
-				$_SESSION['logged_in'] = false;
-				$authorized = false;
-				$password_error = "Incorrect password for $op_call_input.";
-				log_msg(DEBUG_INFO, "✅ Password from database $stored_pw does not match entered password $op_password_input");
-			}
-		} else { // there is no password in the database for this call 
-			// a password was entered but there was none in database ==> this is now the Password
-			db_add_password($db_conn, $op_call_input, $op_password_input);
-            $_SESSION['authenticated_users'][$op_call_input] = true;
-            $_SESSION['login_flash'] = true;
-			$_SESSION['logged_in'] = true;
-            $authorized = true;
-            log_msg(DEBUG_INFO, "✅ Login (new pw) for $op_call_input");
-		}
-	} else { // no password was entered but db password exists
-	    if (!empty($_SESSION['authenticated_users'][$op_call_input])) {
-			// user already logged in this session
-			log_msg(DEBUG_INFO, "✅ Already authenticated in session: $op_call_input");
-			$_SESSION['logged_in'] = true;
-			$authorized = true;
-		} else { 
-			// no password entered but db password exists and not previously logged in - fail
-			$_SESSION['authenticated_users'][$op_call_input] = false;
-			$_SESSION['login_flash'] = false;
-			$_SESSION['logged_in'] = false;
-			$authorized = false;
-			$password_error = "Password required for $op_call_input.";
-			log_msg(DEBUG_INFO, "✅ Password from database $stored_pw but password was not entered");
-		}
-	}
-		
-}
+	} else {
+		// check for db password
+		$stored_pw = db_get_operator_password($db_conn, $op_call_input);
+		$db_pw_exists = $stored_pw != '';
 
+		// if there's no pw this user is authorized by default (I know, unconventional...)
+		if (!$db_pw_exists) {
+			log_msg(DEBUG_INFO, "✅ No password exists in db for $op_call_input, login without pw is ok");
+			$_SESSION['authenticated_users'][$op_call_input] = true;
+			$_SESSION['login_flash'] = true;
+			$authorized = true;
+		} else {
+			if ($stored_pw == $op_password_input) {
+				log_msg(DEBUG_INFO, "✅ db password matches input for $op_call_input, login ok"); 
+					$_SESSION['authenticated_users'][$op_call_input] = true;
+					$_SESSION['login_flash'] = true;
+					$authorized = true;
+			} else {
+				unset($_SESSION['authenticated_users'][$op_call_input]);
+				$authorized = false;
+			}
+		}
+
+	}
+}		
+	
 $table_rows = [];
 
 $club_station_conflict = 0;
 $band_mode_conflict = 0;
 
-if (($authorized || !$requires_authentication) && $_SERVER['REQUEST_METHOD'] === 'POST') {
+// build the table to be displayed, optionally with add/delete buttons (if authorized)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authentication) ) {
     if (isset($_POST['add_selected']) && isset($_POST['slots'])) {
 		log_msg(DEBUG_INFO, "✅ processing schedule add:");
         foreach ($_POST['slots'] as $slot) {
@@ -280,7 +255,7 @@ if (($authorized || !$requires_authentication) && $_SERVER['REQUEST_METHOD'] ===
             }
         }
     }
-	log_msg(DEBUG_DEBUG, "Formatting page with result: " . json_encode($table_rows));
+	log_msg(DEBUG_DEBUG, "🧪 Formatting page with result: " . json_encode($table_rows));
 }
 
 ?>
@@ -357,7 +332,7 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
         <label><strong>Name:</strong></label>
         <input type="text" name="op_name" value="<?= htmlspecialchars($op_name_input) ?>" required>
 
-		<?php if ($_SESSION['logged_in']): ?>
+		<?php if ($authorized): ?>
  			<a href="?logout=1" class="logout-button">Log Out</a>
 		<?php else: ?>
 			<!-- Show password input if not logged in -->
