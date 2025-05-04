@@ -33,8 +33,8 @@ $op_name_input = '';
 $op_password_input = '';
 $start_date = '';
 $end_date = '';
-$time_slots = ['all']; // default to all times of the day if not a POST
-$days_of_week = ['all']; // default to all days of week if not a POST
+$time_slots = array_keys($time_opts); // all time slots selected by default
+$days_of_week = array_keys($day_opts); // all days of week selected by default
 
 // which button was clicked:
 $mine_only = false;
