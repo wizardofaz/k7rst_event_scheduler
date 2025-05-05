@@ -459,9 +459,9 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 		?>
 		<tr style="<?= $status === 'Booked by you' ? 'background-color:' . $highlight_booked_by_you : 'background-color:' . $highlight_color ?>">
 			<td>
-				<?php if ($status === 'Open'): ?>
+				<?php if ($status === 'Open' && $authorized): ?>
 					<input type="checkbox" name="slots[]" value="<?= $key ?>">
-				<?php elseif ($status === "Booked by you"): ?>
+				<?php elseif ($status === "Booked by you" && $authorized): ?>
 					<input type="checkbox" name="delete_slots[]" value="<?= $key ?>"> Delete
 				<?php else: ?>
 					--
