@@ -1,7 +1,10 @@
+<?php
+require_once 'config.php';
+?>
 <!DOCTYPE html>
 <html>
 <head>
-    <title>How Do I Use This? – CACTUS Operator Scheduler</title>
+    <title>How Do I Use This? – <?= EVENT_NAME ?> Operator Scheduler</title>
     <link rel="icon" href="img/cropped-RST-Logo-1-32x32.jpg">
     <style>
         body {
@@ -26,7 +29,7 @@
 
 <h1>How Do I Use This?</h1>
 
-<p>This page will help you understand how to use the CACTUS Operator Scheduling Tool to sign up for operating time during the special event.</p>
+<p>This page will help you understand how to use the <?= EVENT_NAME ?> Operator Scheduling Tool to sign up for operating time during the special event.</p>
 
 <h2>1. Signing In</h2>
 <ul>
@@ -86,7 +89,7 @@
 </div>
 
 <h2>Need Help?</h2>
-<p>If you run into trouble or have questions, please contact your CACTUS coordinator for assistance.</p>
+<p>If you run into trouble or have questions, please contact your <?= EVENT_NAME ?> coordinator for assistance.</p>
 
 <p><a href="scheduler.php">← Back to the Scheduler</a></p>
 
