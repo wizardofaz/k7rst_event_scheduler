@@ -35,6 +35,8 @@ $start_date = '';
 $end_date = '';
 $time_slots = array_keys($time_opts); // all time slots selected by default
 $days_of_week = array_keys($day_opts); // all days of week selected by default
+$bands_list = $band_opts; // all bands selected by default
+$modes_list = $mode_opts; // all modes selected by default
 
 // which button was clicked:
 $mine_only = false;
@@ -54,6 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $end_date = $_POST['end_date'] ?? '';
     $time_slots = $_POST['time_slots'] ?? [];
     $days_of_week = $_POST['days_of_week'] ?? [];
+    $bands_list = $_POST['bands_list'] ?? [];
+    $modes_list = $_POST['modes_list'] ?? [];
 
 	// remember the most recent show button so it can be reused after an add/delete
 	// TODO this doesn't work: if (isset($_POST['mine_only']) || isset($_POST['enter_pressed'])) {
@@ -391,7 +395,7 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
         <?php
 		// $time_opts defined in config.php
         foreach ($time_opts as $val => $label): ?>
-			<?php if ($val == 'all'): ?>
+			<?php if (strtoupper($val) == 'ALL'): ?>
             	<label><input type="checkbox" class="select-all" data-group="time_slots" name="time_slots[]" value="<?= $val ?>" <?= in_array($val, $time_slots ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
 			<?php else: ?>
 				<label><input type="checkbox" name="time_slots[]" value="<?= $val ?>" <?= in_array($val, $time_slots ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
@@ -404,10 +408,36 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
         <?php
 		// $day_opts defined in config.php
         foreach ($day_opts as $val => $label): ?>
-			<?php if ($val == 'all'): ?>
+			<?php if (strtoupper($val) == 'ALL'): ?>
             	<label><input type="checkbox" class="select-all" data-group="days_of_week" name="days_of_week[]" value="<?= $val ?>" <?= in_array($val, $days_of_week ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
 			<?php else: ?>
 				<label><input type="checkbox" name="days_of_week[]" value="<?= $val ?>" <?= in_array($val, $days_of_week ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
+			<?php endif; ?>	
+        <?php endforeach; ?>
+    </div>
+
+    <div class="section">
+        <strong>Select bands of interest:</strong><br>
+        <?php
+		// $band_opts defined in config.php
+        foreach ($band_opts as $band): ?>
+			<?php if (strtoupper($band) == 'ALL'): ?>
+            	<label><input type="checkbox" class="select-all" data-group="bands_list" name="bands_list[]" value="<?= $band ?>" <?= in_array($band, $bands_list ?? []) ? 'checked' : '' ?>> <?= $band ?></label>
+			<?php else: ?>
+				<label><input type="checkbox" name="bands_list[]" value="<?= $band ?>" <?= in_array($band, $bands_list ?? []) ? 'checked' : '' ?>> <?= $band ?></label>
+			<?php endif; ?>	
+        <?php endforeach; ?>
+    </div>
+
+    <div class="section">
+        <strong>Select modes of interest:</strong><br>
+        <?php
+		// $mode_opts defined in config.php
+        foreach ($mode_opts as $mode): ?>
+			<?php if (strtoupper($mode) == 'ALL'): ?>
+            	<label><input type="checkbox" class="select-all" data-group="modes_list" name="modes_list[]" value="<?= $mode ?>" <?= in_array($mode, $modes_list ?? []) ? 'checked' : '' ?>> <?= $mode ?></label>
+			<?php else: ?>
+				<label><input type="checkbox" name="modes_list[]" value="<?= $mode ?>" <?= in_array($mode, $modes_list ?? []) ? 'checked' : '' ?>> <?= $mode ?></label>
 			<?php endif; ?>	
         <?php endforeach; ?>
     </div>
