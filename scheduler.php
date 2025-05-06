@@ -266,11 +266,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title><?php echo EVENT_NAME ?> Operator Schedule Signup</title>
     <link rel="icon" href="img/cropped-RST-Logo-1-32x32.jpg">
 	<link rel="stylesheet" href="scheduler.css">
+
+	<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 120px;
+            background-color: black;
+            color: #fff;
+            text-align: center;
+            border-radius: 5px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 100%; /* Position above the text */
+            left: 50%;
+            margin-left: -60px; /* Center the tooltip */
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
 
 </head>
 <body>
@@ -331,116 +363,130 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 
 <form method="POST">
     <div class="section">
-        <label><strong>Callsign:</strong></label>
-        <input type="text" name="op_call" value="<?= htmlspecialchars($op_call_input) ?>" required>
+		<label><strong>Callsign:</strong></label>
+		<div class="tooltip">
+			<div class="tooltiptext">Enter callsign - required for all operations.</div>
+			<input type="text" name="op_call" value="<?= htmlspecialchars($op_call_input) ?>" required>
+		</div>
         <label><strong>Name:</strong></label>
-        <input type="text" name="op_name" value="<?= htmlspecialchars($op_name_input) ?>" required>
-
+		<div class="tooltip">
+			<div class="tooltiptext">Enter a name, short name is fine, required for all operations.</div>
+	        <input type="text" name="op_name" value="<?= htmlspecialchars($op_name_input) ?>" required>
+		</div>
 		<?php if ($authorized): ?>
  			<a href="?logout=1" class="logout-button">Log Out</a>
 		<?php else: ?>
 			<!-- Show password input if not logged in -->
 			<label><strong>Password:</strong></label>
-			<input type="password" name="op_password" title="Optional. Set on first use. Required afterward.">
+			<div class="tooltip">
+				<div class="tooltiptext">Enter a password, optional, but once used, always required.</div>
+				<input type="password" name="op_password" title="Optional. Set on first use. Required afterward.">
+			</div>
 		<?php endif; ?>
     </div>
 
-	<div class="section">
-		<strong>Event Date Range:</strong> Starts <strong><?= htmlspecialchars($event_start_date) ?></strong> &nbsp;&nbsp;Ends <strong><?= htmlspecialchars($event_end_date) ?></strong></p>
+	<div class="tooltip" style="border: 2px solid #5cb85c; background-color: #e6f9e6; padding: 1em; border-radius: 6px;">
+		<div class="tooltiptext" style="width: 600px; left: 0%; margin-left: 10px;">
+			Make selections in this box to limit the displayed schedule
+			to times, days, bands, and modes of interest. Leave everything
+			as defaulted to see the entire schedule.
+		</div>
+		<div class="section">
+			<strong>Select Date Range to view:</strong><br>
+			<label>Start:</label>
+			<input type="date" name="start_date" value="<?= htmlspecialchars($start_date ?: $event_start_date) ?>"
+				min="<?= htmlspecialchars($event_start_date) ?>" max="<?= htmlspecialchars($event_end_date) ?>" id="start_date" required>
+			<label>End:</label>
+			<input type="date" name="end_date" value="<?= htmlspecialchars($end_date ?: $start_date ?: $event_end_date) ?>"
+				min="<?= htmlspecialchars($event_start_date) ?>" max="<?= htmlspecialchars($event_end_date) ?>" id="end_date" required>
+			&nbsp; &nbsp;(Event starts on: <strong><?= htmlspecialchars($event_start_date) ?></strong> Event ends on: <strong><?= htmlspecialchars($event_end_date) ?></strong>)<br>
+
+			<!-- Error message div -->
+			<div id="date_error" style="color: red; display: none;">End date cannot be earlier than the start date.</div>
+		</div>
+
+		<script>
+		document.getElementById("start_date").addEventListener("change", validateDates);
+		document.getElementById("end_date").addEventListener("change", validateDates);
+
+		// Automatically default end date to start date if not set
+		window.onload = function() {
+			var startDate = document.getElementById("start_date").value;
+			var endDate = document.getElementById("end_date").value;
+			if (!endDate) {
+				document.getElementById("end_date").value = startDate;  // Set end date to start date if not specified
+			}
+			validateDates(); // Run validation after setting default
+		};
+
+		function validateDates() {
+			// Get the start and end dates
+			var startDate = document.getElementById("start_date").value;
+			var endDate = document.getElementById("end_date").value;
+
+			// If end date is earlier than start date, show error
+			if (new Date(endDate) < new Date(startDate)) {
+				document.getElementById("date_error").style.display = "block";
+			} else {
+				document.getElementById("date_error").style.display = "none";
+			}
+		}
+		</script>
 		
-		<strong>Select Date Range to view:</strong><br>
-		<label>Start:</label>
-		<input type="date" name="start_date" value="<?= htmlspecialchars($start_date ?: $event_start_date) ?>"
-			   min="<?= htmlspecialchars($event_start_date) ?>" max="<?= htmlspecialchars($event_end_date) ?>" id="start_date" required>
-		<label>End:</label>
-		<input type="date" name="end_date" value="<?= htmlspecialchars($end_date ?: $start_date ?: $event_end_date) ?>"
-			   min="<?= htmlspecialchars($event_start_date) ?>" max="<?= htmlspecialchars($event_end_date) ?>" id="end_date" required>
-		&nbsp; &nbsp;(Event starts on: <strong><?= htmlspecialchars($event_start_date) ?></strong> Event ends on: <strong><?= htmlspecialchars($event_end_date) ?></strong>)<br>
+		<!-- See JavaScript handlers at the bottom for how dynamic checkbox behavior is handled in these two <div> sections -->
+		<div class="section">
+			<strong>What parts of the day would you like to operate?</strong><br>
+			<?php
+			// $time_opts defined in config.php
+			foreach ($time_opts as $val => $label): ?>
+				<?php if (strtoupper($val) == 'ALL'): ?>
+					<label><input type="checkbox" class="select-all" data-group="time_slots" name="time_slots[]" value="<?= $val ?>" <?= in_array($val, $time_slots ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
+				<?php else: ?>
+					<label><input type="checkbox" name="time_slots[]" value="<?= $val ?>" <?= in_array($val, $time_slots ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
+				<?php endif; ?>	
+			<?php endforeach; ?>
+		</div>
 
-		<!-- Error message div -->
-		<div id="date_error" style="color: red; display: none;">End date cannot be earlier than the start date.</div>
+		<div class="section">
+			<strong>Which days of the week?</strong><br>
+			<?php
+			// $day_opts defined in config.php
+			foreach ($day_opts as $val => $label): ?>
+				<?php if (strtoupper($val) == 'ALL'): ?>
+					<label><input type="checkbox" class="select-all" data-group="days_of_week" name="days_of_week[]" value="<?= $val ?>" <?= in_array($val, $days_of_week ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
+				<?php else: ?>
+					<label><input type="checkbox" name="days_of_week[]" value="<?= $val ?>" <?= in_array($val, $days_of_week ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
+				<?php endif; ?>	
+			<?php endforeach; ?>
+		</div>
+
+		<div class="section">
+			<strong>Select bands of interest:</strong><br>
+			<?php
+			// $band_opts defined in config.php
+			foreach ($band_opts as $band): ?>
+				<?php if (strtoupper($band) == 'ALL'): ?>
+					<label><input type="checkbox" class="select-all" data-group="bands_list" name="bands_list[]" value="<?= $band ?>" <?= in_array($band, $bands_list ?? []) ? 'checked' : '' ?>> <?= $band ?></label>
+				<?php else: ?>
+					<label><input type="checkbox" name="bands_list[]" value="<?= $band ?>" <?= in_array($band, $bands_list ?? []) ? 'checked' : '' ?>> <?= $band ?></label>
+				<?php endif; ?>	
+			<?php endforeach; ?>
+		</div>
+
+		<div class="section">
+			<strong>Select modes of interest:</strong><br>
+			<?php
+			// $mode_opts defined in config.php
+			foreach ($mode_opts as $mode): ?>
+				<?php if (strtoupper($mode) == 'ALL'): ?>
+					<label><input type="checkbox" class="select-all" data-group="modes_list" name="modes_list[]" value="<?= $mode ?>" <?= in_array($mode, $modes_list ?? []) ? 'checked' : '' ?>> <?= $mode ?></label>
+				<?php else: ?>
+					<label><input type="checkbox" name="modes_list[]" value="<?= $mode ?>" <?= in_array($mode, $modes_list ?? []) ? 'checked' : '' ?>> <?= $mode ?></label>
+				<?php endif; ?>	
+			<?php endforeach; ?>
+		</div>
 	</div>
-
-	<script>
-	document.getElementById("start_date").addEventListener("change", validateDates);
-	document.getElementById("end_date").addEventListener("change", validateDates);
-
-	// Automatically default end date to start date if not set
-	window.onload = function() {
-		var startDate = document.getElementById("start_date").value;
-		var endDate = document.getElementById("end_date").value;
-		if (!endDate) {
-			document.getElementById("end_date").value = startDate;  // Set end date to start date if not specified
-		}
-		validateDates(); // Run validation after setting default
-	};
-
-	function validateDates() {
-		// Get the start and end dates
-		var startDate = document.getElementById("start_date").value;
-		var endDate = document.getElementById("end_date").value;
-
-		// If end date is earlier than start date, show error
-		if (new Date(endDate) < new Date(startDate)) {
-			document.getElementById("date_error").style.display = "block";
-		} else {
-			document.getElementById("date_error").style.display = "none";
-		}
-	}
-	</script>
-	
-	<!-- See JavaScript handlers at the bottom for how dynamic checkbox behavior is handled in these two <div> sections -->
-	<div class="section">
-        <strong>What parts of the day would you like to operate?</strong><br>
-        <?php
-		// $time_opts defined in config.php
-        foreach ($time_opts as $val => $label): ?>
-			<?php if (strtoupper($val) == 'ALL'): ?>
-            	<label><input type="checkbox" class="select-all" data-group="time_slots" name="time_slots[]" value="<?= $val ?>" <?= in_array($val, $time_slots ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
-			<?php else: ?>
-				<label><input type="checkbox" name="time_slots[]" value="<?= $val ?>" <?= in_array($val, $time_slots ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
-			<?php endif; ?>	
-        <?php endforeach; ?>
-    </div>
-
-    <div class="section">
-        <strong>Which days of the week?</strong><br>
-        <?php
-		// $day_opts defined in config.php
-        foreach ($day_opts as $val => $label): ?>
-			<?php if (strtoupper($val) == 'ALL'): ?>
-            	<label><input type="checkbox" class="select-all" data-group="days_of_week" name="days_of_week[]" value="<?= $val ?>" <?= in_array($val, $days_of_week ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
-			<?php else: ?>
-				<label><input type="checkbox" name="days_of_week[]" value="<?= $val ?>" <?= in_array($val, $days_of_week ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
-			<?php endif; ?>	
-        <?php endforeach; ?>
-    </div>
-
-    <div class="section">
-        <strong>Select bands of interest:</strong><br>
-        <?php
-		// $band_opts defined in config.php
-        foreach ($band_opts as $band): ?>
-			<?php if (strtoupper($band) == 'ALL'): ?>
-            	<label><input type="checkbox" class="select-all" data-group="bands_list" name="bands_list[]" value="<?= $band ?>" <?= in_array($band, $bands_list ?? []) ? 'checked' : '' ?>> <?= $band ?></label>
-			<?php else: ?>
-				<label><input type="checkbox" name="bands_list[]" value="<?= $band ?>" <?= in_array($band, $bands_list ?? []) ? 'checked' : '' ?>> <?= $band ?></label>
-			<?php endif; ?>	
-        <?php endforeach; ?>
-    </div>
-
-    <div class="section">
-        <strong>Select modes of interest:</strong><br>
-        <?php
-		// $mode_opts defined in config.php
-        foreach ($mode_opts as $mode): ?>
-			<?php if (strtoupper($mode) == 'ALL'): ?>
-            	<label><input type="checkbox" class="select-all" data-group="modes_list" name="modes_list[]" value="<?= $mode ?>" <?= in_array($mode, $modes_list ?? []) ? 'checked' : '' ?>> <?= $mode ?></label>
-			<?php else: ?>
-				<label><input type="checkbox" name="modes_list[]" value="<?= $mode ?>" <?= in_array($mode, $modes_list ?? []) ? 'checked' : '' ?>> <?= $mode ?></label>
-			<?php endif; ?>	
-        <?php endforeach; ?>
-    </div>
+	<br><br>
 
 	<!-- See JavaScript handlers at the bottom for how enter key is handled -->
     <div class="section">
