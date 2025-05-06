@@ -2,7 +2,7 @@
 
 require_once 'logging.php';
 
-if (strpos($_SERVER['DOCUMENT_ROOT'], '/alpha/') !== false) {
+if (strpos(__dir__ . '/', '/alpha/') !== false) {
     define('CODE_VERSION', 'alpha');
     define('DB_NAME', 'u419577197_CACTUS_alpha');
     define('DB_USER', 'u419577197_cactus_alpha');
