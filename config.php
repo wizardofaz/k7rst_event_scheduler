@@ -32,7 +32,7 @@ define('WEEKDAY_NIGHT_HEAT', 1);  // Heat value for weekday nights
 define('BAND_HEAT_DAY', 2);    // Heat value for certain bands during the day
 define('BAND_HEAT_NIGHT', 1);  // Heat value for certain bands during the night
 
-$band_opts = ['All','160m','80m','40m','30m','20m','17m','15m','12m','10m','6m','2m','70cm', 'other'];
+$band_opts = ['All','160m','80m','40m','30m','20m','17m','15m','12m','10m','6m','2m','70cm', 'OTHER'];
 $mode_opts = ['All','CW','SSB','DIG','OTHER'];
 
 $club_stations = ['N7NBV Corral', 'Days In The Park'];

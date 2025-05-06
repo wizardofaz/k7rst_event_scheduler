@@ -386,7 +386,7 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
     </div>
 
 	<div class="tooltip" style="border: 2px solid #5cb85c; background-color: #e6f9e6; padding: 1em; border-radius: 6px;">
-		<div class="tooltiptext" style="width: 600px; left: 0%; margin-left: 10px;">
+		<div class="tooltiptext" style="width: 80%; left: 0%; margin-left: 10px;">
 			Make selections in this box to limit the displayed schedule
 			to times, days, bands, and modes of interest. Leave everything
 			as defaulted to see the entire schedule.
@@ -550,7 +550,9 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 					<!-- Dropdown for Band -->
 					<select name="band[<?= $key ?>]">
 						<?php foreach ($bands_list as $band): ?>
-							<option value="<?= $band ?>" <?= $band === $r['band'] ? 'selected' : '' ?>><?= $band ?></option>
+							<?php if (strtoupper($band) != "ALL"): ?>
+								<option value="<?= $band ?>" <?= $band === $r['band'] ? 'selected' : '' ?>><?= $band ?></option>
+							<?php endif; ?>
 						<?php endforeach; ?>
 					</select>
 				<?php else: ?>
@@ -563,7 +565,9 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 					<!-- Dropdown for Mode -->
 					<select name="mode[<?= $key ?>]">
 						<?php foreach ($modes_list as $mode): ?>
-							<option value="<?= $mode ?>" <?= $mode === $r['mode'] ? 'selected' : '' ?>><?= $mode ?></option>
+							<?php if (strtoupper($mode) != "ALL"): ?>
+								<option value="<?= $mode ?>" <?= $mode === $r['mode'] ? 'selected' : '' ?>><?= $mode ?></option>
+							<?php endif; ?>
 						<?php endforeach; ?>
 					</select>
 				<?php else: ?>
