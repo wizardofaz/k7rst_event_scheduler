@@ -29,20 +29,23 @@ require_once 'config.php';
 
 <h1>How Do I Use This?</h1>
 
-<p>This page will help you understand how to use the <?= EVENT_NAME ?> Operator Scheduling Tool to sign up for operating time during the special event.</p>
+<p>This page will help you understand how to use the <?= EVENT_NAME ?> Operator Scheduling Tool 
+to sign up for operating time during the special event.</p>
 
 <h2>1. Signing In</h2>
 <ul>
     <li>Enter your <strong>callsign</strong> and <strong>name</strong> at the top of the page.</li>
     <li>If you'd like to protect your schedule with a password, enter it. Once used, you’ll need it in the future.</li>
 	<li><strong>Note: </strong>The password only protects against others deleting or adding to your schedule. 
-		Browsing anything in the schedule is not secured.</li>
+		Browsing the schedule is not secured.</li>
 </ul>
 
 <h2>2. Finding Available Slots</h2>
 <ul>
     <li>Choose a date range, time of day, and which days of the week you're available.</li>
     <li>The defaults will select all hours and days of the entire event calendar</li>
+    <li>Choose the bands and modes of interest to you. If you chose only one band and/or one mode, 
+        those become the default for scheduling yourself.</li>
     <li>Click <strong>“Show Complete Calendar”</strong> to see the calendar within the date/time/days 
 		you selected. You will see open slots and scheduled slots.</li>
 	<li>The other two choices can show you everything currently scheduled 
@@ -54,17 +57,19 @@ require_once 'config.php';
 <h2>3. Booking Your Time</h2>
 <ul>
     <li>In the list of results, you’ll see each slot’s date and time, and whether it's scheduled or open.</li>
-    <li>Click the checkboxes for any slots you want to book.</li>
+    <li>Click the checkboxes in the left column of open slots you want to book.</li>
     <li>Choose a band and mode you will operate in that slot.</li>
-    <li>Optionally choose a <strong>club station</strong> if you'll be using one — only one person can reserve a club station per time slot.</li>
+    <li>Optionally choose a <strong>club station</strong> if you'll be using one — only one person can reserve 
+        a club station per time slot.</li>
     <li>Add any optional notes you'd like to include with your booking.</li>
-    <li>Click <strong>“Add Selected Slots”</strong> to finalize your signup.</li>
+    <li>Click <strong>“Add Selected Slots”</strong> just below the bottom of the list to finalize your signup.</li>
 </ul>
 
 <h2>4. Viewing or Deleting Your Schedule</h2>
 <ul>
     <li>To see only your scheduled slots, click <strong>“Show My Schedule Only.”</strong></li>
-    <li>Your slots will appear with a “Delete” option. Check the ones you want to remove and click <strong>“Delete Selected Slots.”</strong></li>
+    <li>Your slots will appear with a “Delete” option. Check the ones you want to remove and 
+        click <strong>“Delete Selected Slots just below the bottom of the list.”</strong></li>
 </ul>
 
 <h2>5. Printing or Downloading</h2>
