@@ -1,19 +1,20 @@
 Scheduler todo
 
 Bugs:
+can't create new passwords!!
+enter with no password logs in for a previously unknown user (and other odd behavior... more investigation needed)
 
 
 todo:
+add admin column to user table; add "make admin" function to admin page; verify admin login to use admin page.
+create a (hidden) admin page that can wipe the db or create a new one
+maybe: make entering call/name optional when only browsing
 handle enter key to show just my schedule, or maybe just log in
 change delete to a dropdown list edit/delete
 make heatmap work
 
-make behavior of ALL selection consistent
-externalize time range definitions
 admin screen, admin users
-if logged in, clicking a show button logs out (and otherwise does the right thing)
 type call+name press enter fetches the call's current schedule
-adding to schedule without password not possible (no button)
 
 Done:
 in resulting schedule table day of week is correct but dates are all the same, ending date
@@ -27,4 +28,10 @@ deletes not working.... delete has correct date and time but has band & mode
 logout happens when it shouldn't
 dynamic checkboxes still not perfect; on ititial load, if check a choice, all does not go off
 delete/add checkboxes should not show if delete/add button not also shown
+make behavior of ALL selection consistent
+externalize time range definitions
+if logged in, clicking a show button logs out (and otherwise does the right thing)
+adding to schedule without password not possible (no button)
+reinstate checkboxes for band and mode, with the effect of narrowing the list of choices in the dropdown
+"all" should not be in dropdowns for band/mode
 
