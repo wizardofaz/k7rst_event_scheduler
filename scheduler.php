@@ -2,6 +2,7 @@
 require_once 'config.php';
 require_once 'logging.php';
 require_once 'db.php';
+require_once 'login.php';
 
 ini_set('session.gc_maxlifetime', 7200);
 session_set_cookie_params(7200);
@@ -59,6 +60,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $bands_list = $_POST['bands_list'] ?? [];
     $modes_list = $_POST['modes_list'] ?? [];
 
+	if (!$op_call_input || !$op_name_input) {
+		// this should not be possible because of REQUIRED on this input fields
+		trigger_error("operator call & name required", E_USER_WARNING);
+		exit;
+	}
+
 	// remember the most recent show button so it can be reused after an add/delete
 	// TODO this doesn't work: if (isset($_POST['mine_only']) || isset($_POST['enter_pressed'])) {
 	if (isset($_POST['mine_only'])) {
@@ -80,64 +87,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $db_conn = db_get_connection();
 
-if (!isset($_SESSION['authenticated_users'])) {
-    $_SESSION['authenticated_users'] = [];
-}
+$authorized = login($db_conn, $op_call_input, $op_password_input);
 
 // authentication not required for browsing
 $requires_authentication = isset($_POST['add_selected']) || isset($_POST['delete_selected']);
-$authorized = false; 
-
-// password and login handling
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-	if (!$op_call_input || !$op_name_input) {
-		// this should not be possible because of REQUIRED on this input fields
-		trigger_error("operator call & name required", E_USER_WARNING);
-		exit;
-	}
-
-	// Login related variables:
-	// $_SESSION['authenticated_users'][$call]: table of users already authenticated in this session
-	// $_SESSION['login_flash']: when set true will trigger a short "logged in" message 
-	// $authorized: current user is authorized for db changes, pw input will be replaced with logout button
-	if (isset($_SESSION['authenticated_users'][$op_call_input]) 
-		&& $_SESSION['authenticated_users'][$op_call_input]
-		&& !$op_password_input) {
-		// this user successfully logged in earlier in this session - keep them logged in
-		log_msg(DEBUG_INFO, "✅ PW: $op_call_input has previously been authenticated");
-		$authorized = true;
-	} else {
-		unset($_SESSION['authenticated_users'][$op_call_input]);
-		// check for db password
-		$db_stored_pw = db_get_operator_password($db_conn, $op_call_input);
-
-		if ($db_stored_pw === null && !$op_password_input) {
-			// there is no db pw && no pw was entered, this user is authorized by default (I know, unconventional...)
-			log_msg(DEBUG_INFO, "✅ PW: No password exists in db for $op_call_input, login without pw is ok");
-			$_SESSION['authenticated_users'][$op_call_input] = true;
-			$_SESSION['login_flash'] = true;
-			$authorized = true;
-		} elseif ($db_stored_pw === $op_password_input) {
-			// input matches db
-			log_msg(DEBUG_INFO, "✅ PW: db password matches input for $op_call_input, login ok"); 
-			$_SESSION['authenticated_users'][$op_call_input] = true;
-			$_SESSION['login_flash'] = true;
-			$authorized = true;
-		} elseif (!$db_stored_pw && $op_password_input) {
-			// there is an input pw but no db pw: he gets logged in now and password gets stored
-			log_msg(DEBUG_INFO, "✅ PW: no previous db password, will store one now for $op_call_input, login ok"); 
-			db_add_password($db_conn, $op_call_input, $op_password_input);
-			$_SESSION['authenticated_users'][$op_call_input] = true;
-			$_SESSION['login_flash'] = true;
-			$authorized = true;
-		} else {	
-			log_msg(DEBUG_INFO, "❌ PW: db password does not match input for $op_call_input, login failed"); 
-			unset($_SESSION['authenticated_users'][$op_call_input]);
-			$authorized = false;
-		}
-
-	}
-}		
 	
 $table_rows = [];
 

@@ -1,13 +1,10 @@
 Scheduler todo
 
 Bugs:
-can't create new passwords!!
-enter with no password logs in for a previously unknown user (and other odd behavior... more investigation needed)
 
 
 todo:
 add admin column to user table; add "make admin" function to admin page; verify admin login to use admin page.
-create a (hidden) admin page that can wipe the db or create a new one
 maybe: make entering call/name optional when only browsing
 handle enter key to show just my schedule, or maybe just log in
 change delete to a dropdown list edit/delete
@@ -34,4 +31,6 @@ if logged in, clicking a show button logs out (and otherwise does the right thin
 adding to schedule without password not possible (no button)
 reinstate checkboxes for band and mode, with the effect of narrowing the list of choices in the dropdown
 "all" should not be in dropdowns for band/mode
+can't create new passwords!!
+create a (hidden) admin page that can wipe the db or create a new one
 
