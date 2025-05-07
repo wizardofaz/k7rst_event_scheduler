@@ -31,6 +31,10 @@ require_once 'config.php';
 
 <p>This page will help you understand how to use the <?= EVENT_NAME ?> Operator Scheduling Tool 
 to sign up for operating time during the special event.</p>
+<p><strong>Tip: </strong>There are pop-up help message boxes activated by hovering your 
+mouse over various parts of the screen. Hopefully these are helpful, but if one of them
+covers where you're trying to read or type, move the mouse somewhere else on the screen 
+to make it go away.</p>
 
 <h2>1. Signing In</h2>
 <ul>
