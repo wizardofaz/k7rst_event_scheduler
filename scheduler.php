@@ -100,31 +100,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	// $_SESSION['authenticated_users'][$call]: table of users already authenticated in this session
 	// $_SESSION['login_flash']: when set true will trigger a short "logged in" message 
 	// $authorized: current user is authorized for db changes, pw input will be replaced with logout button
-	if (isset($_SESSION['authenticated_users'][$op_call_input]) && $_SESSION['authenticated_users'][$op_call_input]) {
+	if (isset($_SESSION['authenticated_users'][$op_call_input]) 
+		&& $_SESSION['authenticated_users'][$op_call_input]
+		&& !$op_password_input) {
 		// this user successfully logged in earlier in this session - keep them logged in
-		log_msg(DEBUG_INFO, "✅ $op_call_input has previously been authenticated");
+		log_msg(DEBUG_INFO, "✅ PW: $op_call_input has previously been authenticated");
 		$authorized = true;
 	} else {
+		unset($_SESSION['authenticated_users'][$op_call_input]);
 		// check for db password
-		$stored_pw = db_get_operator_password($db_conn, $op_call_input);
-		$db_pw_exists = $stored_pw != '';
+		$db_stored_pw = db_get_operator_password($db_conn, $op_call_input);
 
-		// if there's no pw this user is authorized by default (I know, unconventional...)
-		if (!$db_pw_exists) {
-			log_msg(DEBUG_INFO, "✅ No password exists in db for $op_call_input, login without pw is ok");
+		if ($db_stored_pw === null && !$op_password_input) {
+			// there is no db pw && no pw was entered, this user is authorized by default (I know, unconventional...)
+			log_msg(DEBUG_INFO, "✅ PW: No password exists in db for $op_call_input, login without pw is ok");
 			$_SESSION['authenticated_users'][$op_call_input] = true;
 			$_SESSION['login_flash'] = true;
 			$authorized = true;
-		} else {
-			if ($stored_pw == $op_password_input) {
-				log_msg(DEBUG_INFO, "✅ db password matches input for $op_call_input, login ok"); 
-					$_SESSION['authenticated_users'][$op_call_input] = true;
-					$_SESSION['login_flash'] = true;
-					$authorized = true;
-			} else {
-				unset($_SESSION['authenticated_users'][$op_call_input]);
-				$authorized = false;
-			}
+		} elseif ($db_stored_pw === $op_password_input) {
+			// input matches db
+			log_msg(DEBUG_INFO, "✅ PW: db password matches input for $op_call_input, login ok"); 
+			$_SESSION['authenticated_users'][$op_call_input] = true;
+			$_SESSION['login_flash'] = true;
+			$authorized = true;
+		} elseif (!$db_stored_pw && $op_password_input) {
+			// there is an input pw but no db pw: he gets logged in now and password gets stored
+			log_msg(DEBUG_INFO, "✅ PW: no previous db password, will store one now for $op_call_input, login ok"); 
+			db_add_password($db_conn, $op_call_input, $op_password_input);
+			$_SESSION['authenticated_users'][$op_call_input] = true;
+			$_SESSION['login_flash'] = true;
+			$authorized = true;
+		} else {	
+			log_msg(DEBUG_INFO, "❌ PW: db password does not match input for $op_call_input, login failed"); 
+			unset($_SESSION['authenticated_users'][$op_call_input]);
+			$authorized = false;
 		}
 
 	}
@@ -190,9 +199,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 		$scheduled_only = ($_SESSION['most_recent_show'] === 'scheduled_only');
     }
 	
-	if($mine_only) log_msg(DEBUG_INFO, "✅ printing schedule with mine_only");
-	if($complete_calendar) log_msg(DEBUG_INFO, "✅ printing schedule with complete_calendar");
-	if($scheduled_only) log_msg(DEBUG_INFO, "✅ printing schedule with scheduled_only");
+	if($mine_only) log_msg(DEBUG_INFO, "✅ display schedule with mine_only");
+	if($complete_calendar) log_msg(DEBUG_INFO, "✅ display schedule with complete_calendar");
+	if($scheduled_only) log_msg(DEBUG_INFO, "✅ display schedule with scheduled_only");
 
 	// if any "show" button was pressed
     if ($complete_calendar || $mine_only || $scheduled_only) {
@@ -439,7 +448,7 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 			<?php
 			// $time_opts defined in config.php
 			foreach ($time_opts as $val => $label): ?>
-				<?php if (strtoupper($val) == 'ALL'): ?>
+				<?php if (strtoupper($val) === 'ALL'): ?>
 					<label><input type="checkbox" class="select-all" data-group="time_slots" name="time_slots[]" value="<?= $val ?>" <?= in_array($val, $time_slots ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
 				<?php else: ?>
 					<label><input type="checkbox" name="time_slots[]" value="<?= $val ?>" <?= in_array($val, $time_slots ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
@@ -452,7 +461,7 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 			<?php
 			// $day_opts defined in config.php
 			foreach ($day_opts as $val => $label): ?>
-				<?php if (strtoupper($val) == 'ALL'): ?>
+				<?php if (strtoupper($val) === 'ALL'): ?>
 					<label><input type="checkbox" class="select-all" data-group="days_of_week" name="days_of_week[]" value="<?= $val ?>" <?= in_array($val, $days_of_week ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
 				<?php else: ?>
 					<label><input type="checkbox" name="days_of_week[]" value="<?= $val ?>" <?= in_array($val, $days_of_week ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
@@ -465,7 +474,7 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 			<?php
 			// $band_opts defined in config.php
 			foreach ($band_opts as $band): ?>
-				<?php if (strtoupper($band) == 'ALL'): ?>
+				<?php if (strtoupper($band) === 'ALL'): ?>
 					<label><input type="checkbox" class="select-all" data-group="bands_list" name="bands_list[]" value="<?= $band ?>" <?= in_array($band, $bands_list ?? []) ? 'checked' : '' ?>> <?= $band ?></label>
 				<?php else: ?>
 					<label><input type="checkbox" name="bands_list[]" value="<?= $band ?>" <?= in_array($band, $bands_list ?? []) ? 'checked' : '' ?>> <?= $band ?></label>
@@ -478,7 +487,7 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 			<?php
 			// $mode_opts defined in config.php
 			foreach ($mode_opts as $mode): ?>
-				<?php if (strtoupper($mode) == 'ALL'): ?>
+				<?php if (strtoupper($mode) === 'ALL'): ?>
 					<label><input type="checkbox" class="select-all" data-group="modes_list" name="modes_list[]" value="<?= $mode ?>" <?= in_array($mode, $modes_list ?? []) ? 'checked' : '' ?>> <?= $mode ?></label>
 				<?php else: ?>
 					<label><input type="checkbox" name="modes_list[]" value="<?= $mode ?>" <?= in_array($mode, $modes_list ?? []) ? 'checked' : '' ?>> <?= $mode ?></label>
@@ -490,7 +499,7 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 
 	<!-- See JavaScript handlers at the bottom for how enter key is handled -->
     <div class="section">
-		<strong>Choose what schedule slots to show (filtered by selections above):</strong><br><br>
+		<strong>Use one of the buttons below to choose what show, filtered by selections above:</strong><br><br>
 		<input type="hidden" name="enter_pressed" value="Enter Pressed">
         <input type="submit" name="complete_calendar" value="Show Complete Calendar (scheduled and open)">
         <input type="submit" name="scheduled_only" value="Show Scheduled Slots Only">
@@ -630,16 +639,6 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 	</form>
 <?php endif; ?>
 
-<!-- TODO: This function not currently in use but leave for now -->
-<!-- <script>
-function toggleAll(master, groupName) {
-    const checkboxes = document.querySelectorAll(`input[name="${groupName}"]`);
-    checkboxes.forEach(cb => {
-        if (cb !== master) cb.checked = master.checked;
-    });
-}
-</script>
- -->
 <script>
 setTimeout(() => {
     // Hide any/all "-flash" messages after 5 seconds
