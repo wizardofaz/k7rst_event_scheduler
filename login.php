@@ -16,6 +16,8 @@ function login($db_conn, $op_call, $op_pw) {
         $_SESSION['authenticated_users'] = [];
     }
 
+    $authorized = false;
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (isset($_SESSION['authenticated_users'][$op_call]) 
