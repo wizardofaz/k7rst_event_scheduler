@@ -67,7 +67,9 @@ function score_to_color($norm) {
 }
 
 // --- HTML output ---
-echo "<html><head><title>" . EVENT_NAME . " Visualizer</title><style>
+echo "<html><head><title>" . EVENT_NAME . " Visualizer</title>
+    <link rel=\"icon\" href=\"img/cropped-RST-Logo-1-32x32.jpg\">
+    <style>
     table.coverage-grid { border-collapse: collapse; margin-top: 1em; }
     table.coverage-grid td {
   width: 24px;
