@@ -67,6 +67,10 @@ echo "<html><head><title>CACTUS Visualizer</title><style>
   padding: 1px;
   box-shadow: inset 0 0 0 2px #999;
 }
+table.coverage-grid td.blank-cell {
+  box-shadow: none;
+  background-color: transparent;
+}
     #popup { display: none; position: fixed; top: 10%; left: 10%; width: 80%; background: #fff; border: 1px solid #888; padding: 1em; box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 1000; }
     #popup-close { float: right; cursor: pointer; font-weight: bold; }
 </style>
@@ -79,16 +83,26 @@ function showPopup(date, time) {
             document.getElementById('popup').style.display = 'block';
         });
 }
+
 function closePopup() {
     document.getElementById('popup').style.display = 'none';
 }
+
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('td[data-date]').forEach(td => {
-        td.addEventListener('click', () => {
+        td.addEventListener('click', (event) => {
+            event.stopPropagation(); // prevent immediate outside-close
             const d = td.getAttribute('data-date');
             const t = td.getAttribute('data-time');
             showPopup(d, t);
         });
+    });
+
+    document.addEventListener('click', function(event) {
+        const popup = document.getElementById('popup');
+        if (popup.style.display === 'block' && !popup.contains(event.target)) {
+            popup.style.display = 'none';
+        }
     });
 });
 </script>
@@ -120,7 +134,7 @@ $period = new DatePeriod($startDate, $interval, $endDate->modify('+1 day'));
 echo "<table class='coverage-grid'>";
 
 // Header row with hours
-echo "<tr><td style='min-width: 60px;'></td>";
+echo "<tr><td class='blank-cell'></td>";
 for ($hour = 0; $hour < 24; $hour++) {
     $label = ($hour % 6 === 0) ? sprintf("%02d00", $hour) : '';
     echo "<th style='width: 32px;'>$label</th>";
