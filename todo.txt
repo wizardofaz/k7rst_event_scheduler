@@ -4,6 +4,8 @@ Bugs:
 
 
 todo:
+allow a station co-operator
+make login style on scheduler the same as on visualizer
 add admin column to user table; add "make admin" function to admin page; verify admin login to use admin page.
 maybe: make entering call/name optional when only browsing
 handle enter key to show just my schedule, or maybe just log in
@@ -11,7 +13,6 @@ change delete to a dropdown list edit/delete
 make heatmap work
 
 admin screen, admin users
-type call+name press enter fetches the call's current schedule
 
 Done:
 in resulting schedule table day of week is correct but dates are all the same, ending date
@@ -23,7 +24,7 @@ uncheck "all" if some other boxes checked
 deletes not working.... delete has correct date and time but has band & mode 
    from last scheduled line in db - which may not even be displayed!
 logout happens when it shouldn't
-dynamic checkboxes still not perfect; on ititial load, if check a choice, all does not go off
+dynamic checkboxes still not perfect; on initial load, if check a choice, all does not go off
 delete/add checkboxes should not show if delete/add button not also shown
 make behavior of ALL selection consistent
 externalize time range definitions
@@ -33,4 +34,6 @@ reinstate checkboxes for band and mode, with the effect of narrowing the list of
 "all" should not be in dropdowns for band/mode
 can't create new passwords!!
 create a (hidden) admin page that can wipe the db or create a new one
+apply new normalizer causes logout
+close visualizer popup when click outside
 

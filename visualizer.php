@@ -8,13 +8,23 @@ require_once 'login.php';
 
 $conn = db_get_connection();
 
-// Handle login
+// Handle login and logout
 $authorized = false;
-$op_call = $_POST['call'] ?? '';
+$op_call = $_POST['call'] ?? ($_SESSION['current_call'] ?? '');
 $op_name = $_POST['name'] ?? '';
 $op_pw = $_POST['password'] ?? '';
-if ($op_call) {
+if (isset($_POST['logout'])) {
+    unset($_SESSION['authenticated_users']);
+    unset($_SESSION['current_call']);
+    $op_call = '';
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $op_call) {
     $authorized = login($conn, $op_call, $op_pw);
+    if ($authorized) {
+        $_SESSION['current_call'] = $op_call;
+    }
+} elseif (isset($_SESSION['authenticated_users'][$op_call]) && $_SESSION['authenticated_users'][$op_call]) {
+    $authorized = true;
 }
 
 // Handle max score input
@@ -111,7 +121,9 @@ document.addEventListener('DOMContentLoaded', () => {
 echo "<h2>CACTUS Schedule Visualizer</h2>";
 
 if ($authorized) {
-    echo "<form method='post'><strong>$op_call</strong> logged in <button name='logout'>Logout</button></form>";
+    echo "<form method='post' style='display:inline;'>
+    <strong>$op_call</strong> logged in <button name='logout'>Logout</button>
+    </form><br><br>";
 } else {
     echo "<form method='post'>
         Call: <input name='call' value='" . htmlspecialchars($op_call) . "'>
