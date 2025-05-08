@@ -325,24 +325,29 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 
 <form method="POST">
     <div class="section">
-		<label><strong>Callsign:</strong></label>
-		<div class="tooltip">
-			<div class="tooltiptext">Enter callsign - required for all operations.</div>
-			<input type="text" name="op_call" value="<?= htmlspecialchars($op_call_input) ?>" required>
-		</div>
-        <label><strong>Name:</strong></label>
-		<div class="tooltip">
-			<div class="tooltiptext">Enter a name, short name is fine, required for all operations.</div>
-	        <input type="text" name="op_name" value="<?= htmlspecialchars($op_name_input) ?>" required>
-		</div>
 		<?php if ($authorized): ?>
+			<strong><?= htmlspecialchars($op_call_input) ?></strong> is logged in.
  			<a href="?logout=1" class="logout-button">Log Out</a>
 		<?php else: ?>
-			<!-- Show password input if not logged in -->
+			<!-- Show login inputs if not logged in -->
+			<label><strong>Callsign:</strong></label>
+			<div class="tooltip">
+				<div class="tooltiptext">Enter callsign - required for all operations.</div>
+				<input type="text" name="op_call" value="<?= htmlspecialchars($op_call_input) ?>" required>
+			</div>
+			<label><strong>Name:</strong></label>
+			<div class="tooltip">
+				<div class="tooltiptext">Enter a name, short name is fine, required for all operations.</div>
+				<input type="text" name="op_name" value="<?= htmlspecialchars($op_name_input) ?>" required>
+			</div>
 			<label><strong>Password:</strong></label>
 			<div class="tooltip">
 				<div class="tooltiptext">Enter a password, optional, but once used, always required.</div>
 				<input type="password" name="op_password" title="Optional. Set on first use. Required afterward.">
+			</div>
+			<div class="tooltip">
+				<div class="tooltiptext">Click to login, or just press enter.</div>
+				<input type="submit" name="login" value="Login">
 			</div>
 		<?php endif; ?>
     </div>

@@ -5,7 +5,6 @@ Bugs:
 
 todo:
 allow a station co-operator
-make login style on scheduler the same as on visualizer
 add admin column to user table; add "make admin" function to admin page; verify admin login to use admin page.
 maybe: make entering call/name optional when only browsing
 handle enter key to show just my schedule, or maybe just log in
@@ -36,4 +35,5 @@ can't create new passwords!!
 create a (hidden) admin page that can wipe the db or create a new one
 apply new normalizer causes logout
 close visualizer popup when click outside
+make login style on scheduler the same as on visualizer
 
