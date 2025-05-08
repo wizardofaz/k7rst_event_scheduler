@@ -10,7 +10,7 @@ $conn = db_get_connection();
 
 // Handle login and logout
 $authorized = false;
-$op_call = $_POST['call'] ?? ($_SESSION['current_call'] ?? '');
+$op_call = strtoupper($_POST['call'] ?? ($_SESSION['current_call'] ?? ''));
 $op_name = $_POST['name'] ?? '';
 $op_pw = $_POST['password'] ?? '';
 if (isset($_POST['logout'])) {
