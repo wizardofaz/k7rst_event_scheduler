@@ -67,7 +67,7 @@ function score_to_color($norm) {
 }
 
 // --- HTML output ---
-echo "<html><head><title>CACTUS Visualizer</title><style>
+echo "<html><head><title>" . EVENT_NAME . " Visualizer</title><style>
     table.coverage-grid { border-collapse: collapse; margin-top: 1em; }
     table.coverage-grid td {
   width: 24px;
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </head><body>";
 
-echo "<h2>CACTUS Schedule Visualizer</h2>";
+echo "<h2>" . EVENT_NAME . " Schedule Visualizer</h2>";
 
 if ($authorized) {
     echo "<form method='post' style='display:inline;'>
