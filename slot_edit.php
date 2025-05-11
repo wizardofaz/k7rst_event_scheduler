@@ -4,6 +4,7 @@
 session_start();
 require_once 'config.php';
 require_once 'db.php';
+require_once 'logging.php';
 
 $conn = db_get_connection();
 $date = $_GET['date'] ?? '';
@@ -72,27 +73,10 @@ if (!empty($logged_in_calls)) {
 
 ?>
 <script>
-function addEntry(form) {
-    const data = new FormData(form);
-    fetch('add_entry.php', {
-        method: 'POST',
-        body: data
-    }).then(res => res.text()).then(msg => {
-        if (msg === 'OK') location.reload();
-        else alert(msg);
-    });
-    return false;
-}
-
-function deleteEntry(form) {
-    const data = new FormData(form);
-    fetch('delete_entry.php', {
-        method: 'POST',
-        body: data
-    }).then(res => res.text()).then(msg => {
-        if (msg === 'OK') location.reload();
-        else alert(msg);
-    });
-    return false;
-}
+document.addEventListener('click', function(event) {
+    const popup = document.getElementById('popup');
+    if (popup.style.display === 'block' && !popup.contains(event.target)) {
+        popup.style.display = 'none';
+    }
+});
 </script>

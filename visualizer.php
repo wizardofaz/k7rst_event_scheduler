@@ -5,6 +5,7 @@ session_start();
 require_once 'config.php';
 require_once 'db.php';
 require_once 'login.php';
+require_once 'logging.php';
 
 $conn = db_get_connection();
 
@@ -190,3 +191,29 @@ echo "<div id='popup'><div id='popup-close' onclick='closePopup()'>X</div><div i
 
 echo "</body></html>";
 ?>
+<script>
+  function addEntry(form) {
+    const data = new FormData(form);
+    fetch('add_entry.php', {
+        method: 'POST',
+        body: data
+    }).then(res => res.text()).then(msg => {
+        if (msg === 'OK') location.reload();
+        else alert(msg);
+    });
+    return false;
+}
+
+function deleteEntry(form) {
+    const data = new FormData(form);
+    fetch('delete_entry.php', {
+        method: 'POST',
+        body: data
+    }).then(res => res.text()).then(msg => {
+        if (msg === 'OK') location.reload();
+        else alert(msg);
+    });
+    return false;
+}
+
+</script>
