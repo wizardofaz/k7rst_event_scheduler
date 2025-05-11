@@ -6,21 +6,24 @@ if (strpos(__dir__ . '/', '/alpha/') !== false) {
     define('CODE_VERSION', 'alpha');
     define('DB_NAME', 'u419577197_CACTUS_alpha');
     define('DB_USER', 'u419577197_cactus_alpha');
+    define('DB_PASSWORD', 'RST_k7rst');
     define('DEBUG_LEVEL', DEBUG_INFO);
 } else {
     define('CODE_VERSION', 'beta');
     define('DB_NAME', 'u419577197_CACTUS_sched');
     define('DB_USER', 'u419577197_cactus');
+    define('DB_PASSWORD', 'RST_k7rst');
     define('DEBUG_LEVEL', DEBUG_ERROR);
 }
 
 define('DB_SERVER', '127.0.0.1:3306');
-define('DB_PASSWORD', 'RST_k7rst');
 
 define('EVENT_NAME', '2025 CACTUS');
 
 define('EVENT_START_DATE', '2025-11-20');
+define('EVENT_START_TIME', '00:00:00');
 define('EVENT_END_DATE', '2025-11-30');
+define('EVENT_END_TIME', '00:00:00');
 define('TIMEZONE_OFFSET_SECONDS', -7*60*60);
 
 define('DAYTIME_START', 9);  // Start of daytime (9 AM)
