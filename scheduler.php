@@ -245,8 +245,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 	<meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
+
 <body>
-<img  src="img/RST-header-768x144.jpg" alt="Radio Society of Tucson K7RST" /><br><br>
+<img src="img/RST-header-768x144.jpg" alt="Radio Society of Tucson K7RST" 
+	title="<?= htmlspecialchars(EVENT_NAME . " scheduler, version " . APP_VERSION) ?>" /><br><br>
 
 <?php
 // Only log debugging info after the page content is rendered
