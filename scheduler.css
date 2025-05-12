@@ -36,3 +36,42 @@ label { margin-right: 1em; }
 		padding: 4px;
 	}
 }
+
+/* Make the container flex so the buttons stay on the same line */
+.button-container {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: stretch; /* Ensures all buttons are same height */
+}
+
+/* Style for each button */
+.button-container input {
+    flex: 1 1 200px;         /* Grow/shrink with a base width of 200px */
+    min-width: 150px;        /* Don’t go smaller than this */
+    max-width: 220px;        /* Prevent overly wide buttons */
+    width: 100%;             /* Fill allowed space within flex item */
+
+    padding: 10px 15px;
+    text-align: center;
+
+    white-space: normal;     /* Allow wrapping */
+    word-wrap: break-word;   /* Older fallback */
+    overflow-wrap: break-word; /* Modern */
+
+    font-size: 14px;
+    line-height: 1.2;
+    background-color: #007bff;
+    color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+
+    box-sizing: border-box;
+}
+
+.button-container input:hover {
+    background-color: #0056b3;  /* Darker shade on hover */
+}
+

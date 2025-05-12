@@ -11,19 +11,16 @@ $conn = db_get_connection();
 
 // Handle login and logout
 $authorized = false;
-$op_call = strtoupper($_POST['call'] ?? ($_SESSION['current_call'] ?? ''));
-$op_name = $_POST['name'] ?? '';
+$op_call = strtoupper($_POST['call'] ?? ($_SESSION['logged_in_call'] ?? ''));
+$op_name = $_POST['name'] ?? ($_SESSION['logged_in_name'] ?? '');
 $op_pw = $_POST['password'] ?? '';
 if (isset($_POST['logout'])) {
     unset($_SESSION['authenticated_users']);
-    unset($_SESSION['current_call']);
+    unset($_SESSION['logged_in_call']);
     $op_call = '';
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $op_call) {
-    $authorized = login($conn, $op_call, $op_pw);
-    if ($authorized) {
-        $_SESSION['current_call'] = $op_call;
-    }
+    $authorized = login($conn, $op_call, $op_name, $op_pw);
 } elseif (isset($_SESSION['authenticated_users'][$op_call]) && $_SESSION['authenticated_users'][$op_call]) {
     $authorized = true;
 }

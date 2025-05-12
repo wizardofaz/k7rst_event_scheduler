@@ -41,6 +41,7 @@ $modes_list = $mode_opts; // all modes selected by default
 
 // which button was clicked:
 $mine_only = false;
+$mine_plus_open =
 $complete_calendar = false;
 $scheduled_only = false;
 
@@ -51,7 +52,9 @@ $password_error = '';
 // collect form data
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $op_call_input = strtoupper(trim($_POST['op_call'] ?? ''));
+	if (!$op_call_input) $op_call_input = ($_SESSION['logged_in_call'] ?? '');
     $op_name_input = trim($_POST['op_name'] ?? '');
+	if (!$op_name_input) $op_name_input = ($_SESSION['logged_in_name'] ?? '');
     $op_password_input = trim($_POST['op_password'] ?? '');
     $start_date = $_POST['start_date'] ?? '';
     $end_date = $_POST['end_date'] ?? '';
@@ -69,8 +72,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	// remember the most recent show button so it can be reused after an add/delete
 	// TODO this doesn't work: if (isset($_POST['mine_only']) || isset($_POST['enter_pressed'])) {
 	if (isset($_POST['mine_only'])) {
-			$mine_only = true;
+		$mine_only = true;
 		$_SESSION['most_recent_show'] = 'mine_only';
+	} elseif (isset($_POST['mine_plus_open'])) {
+		$mine_plus_open = true;
+		$_SESSION['most_recent_show'] = 'mine_plus_open';
 	} elseif (isset($_POST['complete_calendar'])) {
 		$complete_calendar = true;
 		$_SESSION['most_recent_show'] = 'complete_calendar';
@@ -82,12 +88,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     log_msg(DEBUG_VERBOSE, "ℹ️ Incoming POST: " . json_encode($_POST));
     log_msg(DEBUG_INFO, "ℹ️ Session authenticated_users: " . json_encode($_SESSION['authenticated_users'] ?? []));
     log_msg(DEBUG_INFO, "ℹ️ op_call_input: $op_call_input");
-	log_msg(DEBUG_INFO, "ℹ️ most_recent_show: " . $_SESSION['most_recent_show']);
+	log_msg(DEBUG_INFO, "ℹ️ most_recent_show: " . $_SESSION['most_recent_show'] ?? '(not set)');
 }
 
 $db_conn = db_get_connection();
 
-$authorized = login($db_conn, $op_call_input, $op_password_input);
+$authorized = login($db_conn, $op_call_input, $op_name_input, $op_password_input);
 
 // authentication not required for browsing
 $requires_authentication = isset($_POST['add_selected']) || isset($_POST['delete_selected']);
@@ -133,6 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 
 		// trigger the display of the schedule asif the most recently used show button
 		$mine_only = ($_SESSION['most_recent_show'] === 'mine_only');
+		$mine_plus_open = ($_SESSION['most_recent_show'] === 'mine_plus_open');
 		$complete_calendar = ($_SESSION['most_recent_show'] === 'complete_calendar');
 		$scheduled_only = ($_SESSION['most_recent_show'] === 'scheduled_only');
     }
@@ -148,16 +155,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 
 		// trigger the display of the schedule asif the most recently used show button
 		$mine_only = ($_SESSION['most_recent_show'] === 'mine_only');
+		$mine_plus_open = ($_SESSION['most_recent_show'] === 'mine_plus_open');
 		$complete_calendar = ($_SESSION['most_recent_show'] === 'complete_calendar');
 		$scheduled_only = ($_SESSION['most_recent_show'] === 'scheduled_only');
     }
 	
 	if($mine_only) log_msg(DEBUG_INFO, "✅ display schedule with mine_only");
+	if($mine_plus_open) log_msg(DEBUG_INFO, "✅ display schedule with mine_plus_open");
 	if($complete_calendar) log_msg(DEBUG_INFO, "✅ display schedule with complete_calendar");
 	if($scheduled_only) log_msg(DEBUG_INFO, "✅ display schedule with scheduled_only");
 
 	// if any "show" button was pressed
-    if ($complete_calendar || $mine_only || $scheduled_only) {
+    if ($complete_calendar || $mine_only || $mine_plus_open || $scheduled_only) {
         if ($start_date && !$end_date) $end_date = $start_date;
         if (!$start_date && $end_date) $start_date = $end_date;
         if (!$start_date && !$end_date) {
@@ -204,17 +213,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 					$mode = $row ? $row['mode'] : null;
 					$club_station = $row['club_station'] ?? '';
 					$notes = $row['notes'] ?? '';
-
 					// skip open slots when showing only scheduled
 					if ($scheduled_only && !$op) continue;  
 					// skip lines for other ops when showing only mine
-					if ($mine_only && $op !== $op_call_input) continue;
+					if (($mine_only || $mine_plus_open) && $op !== $op_call_input) continue;
 					// gather what's left to be displayed in the table
 					$table_rows[] = compact('date', 'time', 'band', 'mode', 'op', 'name', 'club_station', 'notes');
 				}
 				// add an unscheduled row if current call is not scheduled in this slot
 				// because we can schedule multiple ops in one slot (other mode and/or other special event callsign)
-				if ($complete_calendar && $none_are_me) {
+				if (($complete_calendar || $mine_plus_open) && $none_are_me) {
 					$band = $mode = $op = $name = $club_station = $notes = null;
 					$table_rows[] = compact('date', 'time', 'band', 'mode', 'op', 'name', 'club_station', 'notes');
 				}
@@ -456,13 +464,17 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 	<br><br>
 
 	<!-- See JavaScript handlers at the bottom for how enter key is handled -->
-    <div class="section">
-		<strong>Use one of the buttons below to choose what show, filtered by selections above:</strong><br><br>
-		<input type="hidden" name="enter_pressed" value="Enter Pressed">
-        <input type="submit" name="complete_calendar" value="Show Complete Calendar (scheduled and open)">
-        <input type="submit" name="scheduled_only" value="Show Scheduled Slots Only">
-        <input type="submit" name="mine_only" value="Show My Schedule Only">
-    </div>
+	<div class="section">
+    	<strong>Use one of the buttons below to choose what show, filtered by selections above:</strong><br><br>
+    	<input type="hidden" name="enter_pressed" value="Enter Pressed">
+    	<div class="button-container">
+        	<input type="submit" name="complete_calendar" value="Show Complete Calendar (scheduled and open)">
+        	<input type="submit" name="scheduled_only" value="Show Scheduled Slots Only">
+        	<input type="submit" name="mine_plus_open" value="Show My Schedule and Open Slots">
+        	<input type="submit" name="mine_only" value="Show My Schedule Only">
+    	</div>
+	</div>
+
 
 <?php if ($table_rows): ?> 
 

@@ -1,9 +1,15 @@
 Scheduler todo
 
 Bugs:
-
+after logged in, op_name and op_call are no longer passed to code, it errors out 
 
 todo:
+better tooltip management
+show selection count?
+ical export
+visualizer in a separate window, and real time reflection of changes
+show mine and open slots button
+add (at least) simple callsign validation to try to keep the junk out of the password table
 allow a station co-operator
 add admin column to user table; add "make admin" function to admin page; verify admin login to use admin page.
 maybe: make entering call/name optional when only browsing
