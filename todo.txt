@@ -1,14 +1,11 @@
 Scheduler todo
 
 Bugs:
-after logged in, op_name and op_call are no longer passed to code, it errors out 
 
 todo:
-better tooltip management
 show selection count?
 ical export
 visualizer in a separate window, and real time reflection of changes
-show mine and open slots button
 add (at least) simple callsign validation to try to keep the junk out of the password table
 allow a station co-operator
 add admin column to user table; add "make admin" function to admin page; verify admin login to use admin page.
@@ -42,4 +39,7 @@ create a (hidden) admin page that can wipe the db or create a new one
 apply new normalizer causes logout
 close visualizer popup when click outside
 make login style on scheduler the same as on visualizer
+better tooltip management
+show mine and open slots button
+after logged in, op_name and op_call are no longer passed to code, it errors out 
 

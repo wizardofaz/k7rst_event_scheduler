@@ -8,9 +8,9 @@ require_once 'login.php';
 
 $conn = db_get_connection();
 
-$op_call = $_POST['call'] ?? '';
+$op_call = strtoupper($_POST['call'] ?? ($_SESSION['logged_in_call'] ?? ''));
+$op_name = $_POST['name'] ?? ($_SESSION['logged_in_name'] ?? '');
 $op_pw   = $_POST['password'] ?? '';
-$op_name = $_POST['name'] ?? '';
 $date    = $_POST['date'] ?? '';
 $time    = $_POST['time'] ?? '';
 $band    = $_POST['band'] ?? '';
@@ -24,7 +24,7 @@ if (!$op_call || !$date || !$time || !$band || !$mode) {
     exit;
 }
 
-$authorized = login($conn, $op_call, $op_pw);
+$authorized = login($conn, $op_call, $op_name, $op_pw);
 
 if (!$authorized) {
     http_response_code(403);

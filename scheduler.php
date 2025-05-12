@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     log_msg(DEBUG_VERBOSE, "ℹ️ Incoming POST: " . json_encode($_POST));
     log_msg(DEBUG_INFO, "ℹ️ Session authenticated_users: " . json_encode($_SESSION['authenticated_users'] ?? []));
     log_msg(DEBUG_INFO, "ℹ️ op_call_input: $op_call_input");
-	log_msg(DEBUG_INFO, "ℹ️ most_recent_show: " . $_SESSION['most_recent_show'] ?? '(not set)');
+	log_msg(DEBUG_INFO, "ℹ️ most_recent_show: " . (isset($_SESSION['most_recent_show']) ? $_SESSION['most_recent_show'] : '(not set)'));
 }
 
 $db_conn = db_get_connection();

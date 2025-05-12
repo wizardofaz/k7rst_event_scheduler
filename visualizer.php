@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $op_call) {
 $userMaxScore = isset($_GET['max_score']) ? (int)$_GET['max_score'] : 10;
 if ($userMaxScore <= 0) $userMaxScore = 10;
 
-// --- Score function ---
+// Score function gives a number indicating how well covered a given hour is
 function score($date, $time, $entries) {
     $score = 0;
     $hour = (int)substr($time, 0, 2);
@@ -37,16 +37,18 @@ function score($date, $time, $entries) {
     $weekday = date('w', strtotime($date));
     $isWeekend = ($weekday == 0 || $weekday == 6);
 
-    if ($isDaytime && $isWeekend)      $score += WEEKEND_DAY_HEAT;
-    elseif ($isDaytime && !$isWeekend) $score += WEEKDAY_DAY_HEAT;
-    elseif (!$isDaytime && $isWeekend) $score += WEEKEND_NIGHT_HEAT;
-    else                               $score += WEEKDAY_NIGHT_HEAT;
-
     $bands = [];
     $modes = [];
     foreach ($entries as $e) {
-        $bands[$e['band']] = true;
-        $modes[$e['mode']] = true;
+        $band = $e['band'];
+        $mode = $e['mode'];
+        $bands[$band] = true;
+        $modes[$mode] = true;
+        if ($isDaytime && $isWeekend)      $score += WEEKEND_DAY_HEAT;
+        elseif ($isDaytime && !$isWeekend) $score += WEEKDAY_DAY_HEAT;
+        elseif (!$isDaytime && $isWeekend) $score += WEEKEND_NIGHT_HEAT;
+        else                               $score += WEEKDAY_NIGHT_HEAT;
+        // TODO: BAND_HEAT needs to be modulated by which bands are scheduled
         $score += $isDaytime ? BAND_HEAT_DAY : BAND_HEAT_NIGHT;
     }
     $score += count($bands);
@@ -164,6 +166,7 @@ echo "<tr><th style='text-align: right; padding-right: 6px; min-width: 60px;'>$w
         $entries = [];
         if ($result) while ($row = $result->fetch_assoc()) $entries[] = $row;
         $s = score($rowDate, $rowTime, $entries);
+        log_msg(DEBUG_DEBUG, "SCORE: $rowDate $rowTime $s " . json_encode($entries));
         $norm = min(1.0, $s / max(1, $userMaxScore));
         $color = score_to_color($norm);
 
