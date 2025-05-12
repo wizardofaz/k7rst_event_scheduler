@@ -587,6 +587,11 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 		<button type="submit">⬇️ Download CSV</button>
 		<button type="button" onclick="window.print()">🖨️ Print Schedule</button>
 	</form>
+	<form method="post" action="export_ical.php">
+	    <input type="hidden" name="table_data" value="<?= htmlspecialchars(json_encode($table_rows)) ?>">
+    	<button type="submit">📅 Export iCal</button>
+	</form>
+
 <?php endif; ?>
 
 <script>
