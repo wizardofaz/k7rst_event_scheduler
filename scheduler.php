@@ -442,7 +442,7 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 
 	<!-- See JavaScript handlers at the bottom for how enter key is handled -->
 	<div class="section">
-    	<strong>Use one of the buttons below to choose what show, filtered by selections above:</strong><br><br>
+    	<strong>Use one of the buttons below to choose what to show, filtered by selections above:</strong><br><br>
     	<input type="hidden" name="enter_pressed" value="Enter Pressed">
     	<div class="button-container">
         	<input type="submit" name="complete_calendar" value="Show Complete Calendar (scheduled and open)">
