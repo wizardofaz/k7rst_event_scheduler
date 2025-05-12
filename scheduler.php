@@ -583,6 +583,7 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 <?php if ($table_rows): ?> 
 	<form method="post" action="export_csv.php">
 		<input type="hidden" name="op_call" value="<?= htmlspecialchars($op_call_input) ?>">
+		<input type="hidden" name="table_data" value="<?= htmlspecialchars(json_encode($table_rows)) ?>">
 		<button type="submit">⬇️ Download CSV</button>
 		<button type="button" onclick="window.print()">🖨️ Print Schedule</button>
 	</form>
