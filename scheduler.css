@@ -21,22 +21,6 @@
     transform: scale(1);  /* Reset to normal size when clicked */
 }
 
-.section { margin-bottom: 1em; }
-label { margin-right: 1em; }
-@media print {
-	input, button, select, label, textarea {
-		display: none !important;
-	}
-	table {
-		width: 100%;
-		font-size: 12pt;
-	}
-	th, td {
-		border: 1px solid black;
-		padding: 4px;
-	}
-}
-
 /* Make the container flex so the buttons stay on the same line */
 .button-container {
     display: flex;
@@ -75,3 +59,160 @@ label { margin-right: 1em; }
     background-color: #0056b3;  /* Darker shade on hover */
 }
 
+.section {
+  margin-bottom: 1em;
+}
+
+label {
+  margin-right: 1em;
+}
+
+.login-button {
+  font-size: 14px;
+  padding: 10px 15px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  min-width: 100px; /* Optional: gives it a bit more presence */
+}
+
+.login-button:hover {
+  background-color: #0056b3; /* darker blue instead of black */
+}
+
+.login-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1em;
+  margin-bottom: 1em;
+}
+
+.login-row label {
+  margin-right: 0.25em;
+  white-space: nowrap;
+}
+
+.login-tooltip-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.login-tooltip-wrap input[type="text"],
+.login-tooltip-wrap input[type="password"] {
+  padding: 5px 8px;
+  font-size: 14px;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  background-color: #fff;
+  box-sizing: border-box;
+}
+
+.login-tooltip-wrap input.login-button {
+  font-size: 14px;
+  padding: 10px 15px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  min-width: 100px;
+}
+
+.login-tooltip-wrap input.login-button:hover {
+  background-color: #0056b3;
+}
+
+/* Tooltip behavior */
+.login-tooltip-text {
+  visibility: hidden;
+  opacity: 0;
+  width: 220px;
+  background-color: #f9f9f9;
+  color: #333;
+  text-align: left;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 6px;
+  position: absolute;
+  top: 125%;
+  left: 0;
+  z-index: 10;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.15);
+  transition: opacity 0.3s ease;
+}
+
+.login-tooltip-wrap:hover .login-tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+@media print {
+  input, button, select, label, textarea {
+    display: none !important;
+  }
+  table {
+    width: 100%;
+    font-size: 12pt;
+  }
+  th, td {
+    border: 1px solid black;
+    padding: 4px;
+  }
+}
+
+.filter-section {
+  position: relative;
+  width: 100%;
+  background-color: #e6f9e6;
+  border: 2px solid #5cb85c;
+  border-radius: 6px;
+  padding: 1em;
+  box-sizing: border-box;
+}
+
+/* Circle-i icon */
+.info-icon {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 18px;
+  color: #007bff;
+  cursor: pointer;
+  line-height: 1;
+  margin: 0;
+  padding: 0;
+}
+
+/* Tooltip text */
+.info-icon .tooltiptext {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  transform: translateX(-50%);
+  width: 260px;              /* Was max-width — now fixed width */
+  white-space: normal;
+  overflow-wrap: break-word;
+
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 10px;
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2);
+
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 10;
+}
+
+/* Show on hover */
+.info-icon:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}

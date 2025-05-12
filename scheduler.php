@@ -244,36 +244,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 
 	<meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        .tooltip {
-            position: relative;
-            display: inline-block;
-            cursor: pointer;
-        }
-
-        .tooltip .tooltiptext {
-            visibility: hidden;
-            width: 120px;
-            background-color: black;
-            color: #fff;
-            text-align: center;
-            border-radius: 5px;
-            padding: 5px;
-            position: absolute;
-            z-index: 1;
-            bottom: 100%; /* Position above the text */
-            left: 50%;
-            margin-left: -60px; /* Center the tooltip */
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .tooltip:hover .tooltiptext {
-            visibility: visible;
-            opacity: 1;
-        }
-    </style>
-
 </head>
 <body>
 <img  src="img/RST-header-768x144.jpg" alt="Radio Society of Tucson K7RST" /><br><br>
@@ -337,35 +307,42 @@ if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished 
 			<strong><?= htmlspecialchars($op_call_input) ?></strong> is logged in.
  			<a href="?logout=1" class="logout-button">Log Out</a>
 		<?php else: ?>
-			<!-- Show login inputs if not logged in -->
-			<label><strong>Callsign:</strong></label>
-			<div class="tooltip">
-				<div class="tooltiptext">Enter callsign - required for all operations.</div>
-				<input type="text" name="op_call" value="<?= htmlspecialchars($op_call_input) ?>" required>
-			</div>
-			<label><strong>Name:</strong></label>
-			<div class="tooltip">
-				<div class="tooltiptext">Enter a name, short name is fine, required for all operations.</div>
-				<input type="text" name="op_name" value="<?= htmlspecialchars($op_name_input) ?>" required>
-			</div>
-			<label><strong>Password:</strong></label>
-			<div class="tooltip">
-				<div class="tooltiptext">Enter a password, optional, but once used, always required.</div>
-				<input type="password" name="op_password" title="Optional. Set on first use. Required afterward.">
-			</div>
-			<div class="tooltip">
-				<div class="tooltiptext">Click to login, or just press enter.</div>
-				<input type="submit" name="login" value="Login">
-			</div>
+			<div class="login-row">
+				<label for="op_call"><strong>Callsign:</strong></label>
+				<div class="login-tooltip-wrap">
+					<input type="text" name="op_call" id="op_call" value="<?= htmlspecialchars($op_call_input) ?>" required>
+					<div class="login-tooltip-text">Enter callsign – required for all operations.</div>
+				</div>
+
+				<label for="op_name"><strong>Name:</strong></label>
+				<div class="login-tooltip-wrap">
+					<input type="text" name="op_name" id="op_name" value="<?= htmlspecialchars($op_name_input) ?>" required>
+					<div class="login-tooltip-text">Enter a name, short name is fine, required for all operations.</div>
+				</div>
+
+				<label for="op_password"><strong>Password:</strong></label>
+				<div class="login-tooltip-wrap">
+					<input type="password" name="op_password" id="op_password">
+					<div class="login-tooltip-text">Enter a password, optional, but once used, always required.</div>
+				</div>
+
+				<div class="login-tooltip-wrap">
+					<input class="login-button" type="submit" name="login" value="Login">
+					<div class="login-tooltip-text">Click to login, or just press enter.</div>
+				</div>
+  			</div>
 		<?php endif; ?>
     </div>
 
-	<div class="tooltip" style="border: 2px solid #5cb85c; background-color: #e6f9e6; padding: 1em; border-radius: 6px;">
-		<div class="tooltiptext" style="width: 80%; left: 0%; margin-left: 10px;">
-			Make selections in this box to limit the displayed schedule
-			to times, days, bands, and modes of interest. Leave everything
-			as defaulted to see the entire schedule.
-		</div>
+	<div class="filter-section">
+		<div class="info-icon">
+    		&#9432; <!-- Unicode info symbol -->
+    		<span class="tooltiptext">
+      			Make selections in this box to limit the displayed schedule
+				to times, days, bands, and modes of interest. Leave everything
+				as defaulted to see the entire schedule.
+    		</span>
+  		</div>
 		<div class="section">
 			<strong>Select Date Range to view:</strong><br>
 			<label>Start:</label>
