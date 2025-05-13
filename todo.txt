@@ -3,8 +3,8 @@ Scheduler todo
 Bugs:
 
 todo:
+link visualizer to main scheduler
 show selection count?
-ical export
 visualizer in a separate window, and real time reflection of changes
 add (at least) simple callsign validation to try to keep the junk out of the password table
 allow a station co-operator
@@ -42,4 +42,6 @@ make login style on scheduler the same as on visualizer
 better tooltip management
 show mine and open slots button
 after logged in, op_name and op_call are no longer passed to code, it errors out 
+ical export
+slot_edit popup better size and moveable
 

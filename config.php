@@ -2,7 +2,7 @@
 
 require_once 'logging.php';
 
-define('APP_VERSION', '1.0.5.12 2025-05-12');
+define('APP_VERSION', '1.0.5.13 2025-05-13');
 
 if (strpos(__dir__ . '/', '/alpha/') !== false) {
     define('CODE_VERSION', 'alpha');

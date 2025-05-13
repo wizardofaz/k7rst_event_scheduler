@@ -69,23 +69,7 @@ function score_to_color($norm) {
 // --- HTML output ---
 echo "<html><head><title>" . EVENT_NAME . " Visualizer</title>
     <link rel=\"icon\" href=\"img/cropped-RST-Logo-1-32x32.jpg\">
-    <style>
-    table.coverage-grid { border-collapse: collapse; margin-top: 1em; }
-    table.coverage-grid td {
-  width: 24px;
-  height: 24px;
-  cursor: pointer;
-  box-sizing: border-box;
-  padding: 1px;
-  box-shadow: inset 0 0 0 2px #999;
-}
-table.coverage-grid td.blank-cell {
-  box-shadow: none;
-  background-color: transparent;
-}
-    #popup { display: none; position: fixed; top: 10%; left: 10%; width: 80%; background: #fff; border: 1px solid #888; padding: 1em; box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 1000; }
-    #popup-close { float: right; cursor: pointer; font-weight: bold; }
-</style>
+    <link rel=\"stylesheet\" href=\"visualizer.css\">
 <script>
 function showPopup(date, time) {
     fetch(`slot_edit.php?date=\${date}&time=\${time}`)
@@ -159,7 +143,7 @@ foreach ($period as $dateObj) {
     $rowDate = $dateObj->format('Y-m-d');
     $weekday = date('D', strtotime($rowDate));
     list($year, $month, $day) = explode('-', $rowDate);
-echo "<tr><th style='text-align: right; padding-right: 6px; min-width: 60px;'>$weekday<br>$month-$day</th>";
+    echo "<tr><th style='text-align: right; padding-right: 6px; min-width: 60px;'>$weekday<br>$month-$day</th>";
     for ($hour = 0; $hour < 24; $hour++) {
         $rowTime = sprintf("%02d:00:00", $hour);
         $result = db_get_schedule_for_date_time($conn, $rowDate, $rowTime);
@@ -171,28 +155,68 @@ echo "<tr><th style='text-align: right; padding-right: 6px; min-width: 60px;'>$w
         $color = score_to_color($norm);
 
         $hasUser = false;
+        $quick_info = $month . '-' . $day . ' ' . str_pad($hour, 2, '0', STR_PAD_LEFT) . ':00';
+        if (count($entries) == 0) $quick_info .= ' (open)';
         foreach ($entries as $e) {
+            if ($e['op_call'] && $e['op_call'] !== '') {
+                $quick_info .= ' / ' . $e['op_call'] . ' ' . $e['band'] . ' ' . $e['mode'] . ' ' . $e['club_station'];
+            }
+                
             if ($authorized && strtolower($e['op_call']) === strtolower($op_call)) {
                 $hasUser = true;
-                break;
             }
         }
-        $highlight = $hasUser ? 'box-shadow: inset 0 0 0 2px red;' : '';
+        $highlight = $hasUser ? 'box-shadow: inset 0 0 0 2px orange;' : '';
 
-        echo "<td style='background-color:$color; $highlight' title=\"$rowDate $hour:00
-Score: $s\" data-date='$rowDate' data-time='$rowTime'></td>";
+        echo "<td style='background-color:$color; $highlight' "
+            . "title=\"$quick_info\" "
+            . "data-date='$rowDate' data-time='$rowTime'></td>";
     }
     echo "</tr>";
 }
 echo "</table>";
 
 // Popup container
-echo "<div id='popup'><div id='popup-close' onclick='closePopup()'>X</div><div id='popup-content'>Loading...</div></div>";
+echo "<div id=\"popup\">
+  <div id=\"popup-header\">
+    Edit Slot
+    <span id=\"popup-close\">&times;</span>
+  </div>
+  <div id=\"popup-content\"></div>
+</div>";
 
 echo "</body></html>";
 ?>
 <script>
-  function addEntry(form) {
+const popup = document.getElementById("popup");
+const header = document.getElementById("popup-header");
+
+document.getElementById('popup-close').addEventListener('click', closePopup);
+
+let offsetX = 0, offsetY = 0, isDragging = false;
+
+header.addEventListener("mousedown", (e) => {
+    isDragging = true;
+    const rect = popup.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+    document.body.style.userSelect = "none"; // prevent text selection while dragging
+});
+
+document.addEventListener("mousemove", (e) => {
+    if (isDragging) {
+        popup.style.left = e.clientX - offsetX + "px";
+        popup.style.top = e.clientY - offsetY + "px";
+        popup.style.transform = "none"; // disable centering while dragging
+    }
+});
+
+document.addEventListener("mouseup", () => {
+    isDragging = false;
+    document.body.style.userSelect = "auto";
+});
+
+function addEntry(form) {
     const data = new FormData(form);
     fetch('add_entry.php', {
         method: 'POST',
