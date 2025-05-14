@@ -2,6 +2,8 @@
 
 require_once 'logging.php';
 
+define('APP_VERSION', '1.0.5.12 2025-05-12');
+
 define('CODE_VERSION', 'fieldday');
 define('DB_NAME', 'u419577197_fieldday');
 define('DB_USER', 'u419577197_k7rst');
@@ -26,6 +28,8 @@ define('WEEKEND_NIGHT_HEAT', 3);  // Heat value for weekend nights
 define('WEEKDAY_NIGHT_HEAT', 1);  // Heat value for weekday nights
 define('BAND_HEAT_DAY', 2);    // Heat value for certain bands during the day
 define('BAND_HEAT_NIGHT', 1);  // Heat value for certain bands during the night
+define('DAY_BANDS', ['20m','17m','15m','12m','10m']);
+define('NIGHT_BANDS', ['160m','80m','40m','30m']);
 
 $band_opts = ['All','160m','80m','40m','30m','20m','17m','15m','12m','10m','6m','2m','70cm', 'OTHER'];
 $mode_opts = ['All','CW','SSB','DIG','OTHER'];
