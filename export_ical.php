@@ -1,4 +1,5 @@
 <?php
+require_once 'config.php';
 $table_data = json_decode($_POST['table_data'] ?? '[]', true);
 if (!is_array($table_data)) {
     die("Invalid or missing table data.");
@@ -20,7 +21,7 @@ foreach ($table_data as $row) {
     $band = $row['band'] ?? '';
     $mode = $row['mode'] ?? '';
     $op = $row['op'] ?? '';
-    $club = $row['club_station'] ?? '';
+    $station = $row['club_station'] ?? '(personal station)';
     $notes = $row['notes'] ?? '';
     $name = $row['name'] ?? '';
 
@@ -39,8 +40,8 @@ foreach ($table_data as $row) {
     echo "DTSTAMP:" . gmdate('Ymd\THis\Z') . "\r\n";
     echo "DTSTART:$start\r\n";
     echo "DTEND:$end\r\n";
-    echo "SUMMARY:$band $mode - $op\r\n";
-    echo "DESCRIPTION:" . addcslashes("$notes\nOperator: $name\nStation: $club", "\n") . "\r\n";
+    echo "SUMMARY: " . EVENT_NAME . ": " . "$band $mode - $op\r\n";
+    echo "DESCRIPTION:" . addcslashes("Operator: $op $name\nBand/Mode: $band $mode\nStation: $station\n$notes", "\n") . "\r\n";
     echo "END:VEVENT\r\n";
 }
 
