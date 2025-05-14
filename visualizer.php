@@ -240,4 +240,16 @@ function deleteEntry(form) {
     return false;
 }
 
+function updateEntry(form) {
+    const formData = new FormData(form);
+    fetch('update_entry.php', {
+        method: 'POST',
+        body: formData
+    }).then(res => res.text())
+      .then(html => {
+          document.getElementById('popup-content').innerHTML = html;
+      });
+    return false;
+}
+
 </script>

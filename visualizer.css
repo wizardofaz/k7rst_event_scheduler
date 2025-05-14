@@ -26,8 +26,10 @@ table.coverage-grid td.blank-cell {
   top: 20%;
   left: 50%;
   transform: translateX(-50%);
-  width: 400px;
-  max-width: 90vw;
+  width: 95%;
+  max-width: 600px;
+  overflow-x: auto;
+  word-wrap: break-word;
   background: white;
   border: 1px solid #888;
   border-radius: 6px;
@@ -36,6 +38,30 @@ table.coverage-grid td.blank-cell {
   z-index: 1000;
   display: none;
   cursor: default;
+}
+
+#popup table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+#popup th, #popup td {
+  padding: 4px;
+  font-size: 0.9em;
+}
+
+#popup td input {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 0.9em;
+  padding: 2px 4px;
+}
+
+#popup-content {
+  max-width: 100%;
+  overflow-x: auto;
+  width: 100%;
 }
 
 #popup-header {

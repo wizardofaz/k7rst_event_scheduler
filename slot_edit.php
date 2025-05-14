@@ -31,21 +31,39 @@ if (count($entries) === 0) {
     echo "</tr>";
     foreach ($entries as $entry) {
         if ($entry['op_call'] === $logged_in_call) $current_call_is_scheduled = true;
-        echo "<tr>";
-        echo "<td>{$entry['op_call']}</td><td>{$entry['op_name']}</td><td>{$entry['band']}</td><td>{$entry['mode']}</td><td>{$entry['club_station']}</td><td>{$entry['notes']}</td>";
-        if ($logged_in_call === $entry['op_call']) {
-            echo "<td><form onsubmit='return deleteEntry(this);'>
-                <input type='hidden' name='date' value='$date'>
-                <input type='hidden' name='time' value='$time'>
-                <input type='hidden' name='band' value='{$entry['band']}'>
-                <input type='hidden' name='mode' value='{$entry['mode']}'>
-                <input type='hidden' name='call' value='{$entry['op_call']}'>
-                <button type='submit'>Delete</button>
-            </form></td>";
-        } elseif ($logged_in_call !== '') {
-            echo "<td></td>";
+        if ($entry['op_call'] === $logged_in_call) {
+            echo "<form onsubmit='return updateEntry(this);'>";
+            echo "<tr>";
+            echo "<td>{$entry['op_call']}</td>";
+            echo "<td>{$entry['op_name']}</td>";
+
+            if ($entry['op_call'] === $logged_in_call) {
+                echo "<td><input name='band' value='{$entry['band']}' size='5' form='form-{$entry['band']}{$entry['mode']}'></td>";
+                echo "<td><input name='mode' value='{$entry['mode']}' size='5' form='form-{$entry['band']}{$entry['mode']}'></td>";
+                echo "<td><input name='club_station' value='{$entry['club_station']}' size='5' form='form-{$entry['band']}{$entry['mode']}'></td>";
+                echo "<td><input name='notes' value='{$entry['notes']}' size='10' form='form-{$entry['band']}{$entry['mode']}'></td>";
+                echo "<td>
+                    <form id='form-{$entry['band']}{$entry['mode']}' onsubmit='return updateEntry(this);' style='display:inline;'>
+                        <input type='hidden' name='date' value='$date'>
+                        <input type='hidden' name='time' value='$time'>
+                        <input type='hidden' name='call' value='{$entry['op_call']}'>
+                        <button type='submit'>Save</button>
+                    </form>
+                    <form onsubmit='return deleteEntry(this);' style='display:inline; margin-left: 5px;'>
+                        <input type='hidden' name='date' value='$date'>
+                        <input type='hidden' name='time' value='$time'>
+                        <input type='hidden' name='band' value='{$entry['band']}'>
+                        <input type='hidden' name='mode' value='{$entry['mode']}'>
+                        <input type='hidden' name='call' value='{$entry['op_call']}'>
+                        <button type='submit'>Delete</button>
+                    </form>
+                </td>";
+            } else {
+                echo "<td>{$entry['band']}</td><td>{$entry['mode']}</td><td>{$entry['club_station']}</td><td>{$entry['notes']}</td>";
+                if ($logged_in_call !== '') echo "<td></td>";
+            }
+            echo "</tr>";
         }
-        echo "</tr>";
     }
     echo "</table>";
 }
