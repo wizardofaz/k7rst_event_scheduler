@@ -51,5 +51,6 @@ if ($stmt->execute()) {
 }
 
 // Re-display the popup content to reflect changes
-include 'slot_edit.php';
+echo json_encode(['success' => true]);
+exit;
 ?>

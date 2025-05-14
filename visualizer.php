@@ -245,10 +245,21 @@ function updateEntry(form) {
     fetch('update_entry.php', {
         method: 'POST',
         body: formData
-    }).then(res => res.text())
-      .then(html => {
-          document.getElementById('popup-content').innerHTML = html;
-      });
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            // Re-fetch slot_edit.php with original date & time
+            const date = form.querySelector('[name="date"]').value;
+            const time = form.querySelector('[name="time"]').value;
+            showPopup(date, time);
+        } else {
+            alert("Update failed");
+        }
+    })
+    .catch(err => {
+        alert("Error: " + err.message);
+    });
     return false;
 }
 

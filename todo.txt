@@ -44,4 +44,6 @@ show mine and open slots button
 after logged in, op_name and op_call are no longer passed to code, it errors out 
 ical export
 slot_edit popup better size and moveable
+hover over visualizer grid shows summary of what's in it
+slot_edit can now edit existing entry
 
