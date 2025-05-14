@@ -238,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title><?php echo EVENT_NAME ?> Operator Schedule Signup</title>
+    <title><?php echo EVENT_NAME ?> Operator Scheduling</title>
     <link rel="icon" href="img/cropped-RST-Logo-1-32x32.jpg">
 	<link rel="stylesheet" href="scheduler.css">
 
@@ -248,14 +248,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 
 <body>
 <img src="img/RST-header-768x144.jpg" alt="Radio Society of Tucson K7RST" 
-	title="<?= htmlspecialchars(EVENT_NAME . " scheduler, version " . APP_VERSION) ?>" /><br><br>
+	title="<?= htmlspecialchars(EVENT_NAME . " scheduler, version " . APP_VERSION) ?>" />
 
 <?php
 // Only log debugging info after the page content is rendered
 if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished debugging (" . CODE_VERSION . ")", E_USER_WARNING);}
 ?>
 
-<h2><?php echo EVENT_NAME ?> Operator Schedule Signup <a href="how-do-i-use-this.php" target="_blank">(How do I use this?)</a></h2>
+<h2><?php echo EVENT_NAME ?> Operator Scheduling 
+<a href="how-do-i-use-this.php" target="_blank">(How do I use this?)</a>
+<a href="visualizer.php">(Switch to "Visualizer" grid)</a></h2>
 
 <?php if ($password_error): ?>
     <p style="color:red; font-weight:bold;"><?= $password_error ?></p>

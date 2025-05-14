@@ -152,9 +152,9 @@ label {
 }
 
 @media print {
-  input, button, select, label, textarea {
+  /*input, button, select, label, textarea {
     display: none !important;
-  }
+  }*/
   table {
     width: 100%;
     font-size: 12pt;

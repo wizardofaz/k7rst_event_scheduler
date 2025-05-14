@@ -104,7 +104,10 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </head><body>";
 
-echo "<h2>" . EVENT_NAME . " Schedule Visualizer</h2>";
+echo "<img src=\"img/RST-header-768x144.jpg\" alt=\"Radio Society of Tucson K7RST\" "
+	. "title=\"<?= htmlspecialchars(EVENT_NAME . \" scheduler, version \" . APP_VERSION) ?>\" />";
+
+echo "<h2>" . EVENT_NAME . " Schedule Visualizer <a href=\"scheduler.php\">(Switch to tabular view)</a></h2>";
 
 if ($authorized) {
     echo "<form method='post' style='display:inline;'>

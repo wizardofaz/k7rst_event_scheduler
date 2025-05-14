@@ -3,7 +3,10 @@ Scheduler todo
 Bugs:
 
 todo:
-link visualizer to main scheduler
+in table view, change delete to a dropdown list edit/delete
+update instructions in "how do I use this"
+move config.php data to db, in support of multiple events
+make action and show buttons consisten style (all buttons I guess)
 show selection count?
 visualizer in a separate window, and real time reflection of changes
 add (at least) simple callsign validation to try to keep the junk out of the password table
@@ -11,8 +14,6 @@ allow a station co-operator
 add admin column to user table; add "make admin" function to admin page; verify admin login to use admin page.
 maybe: make entering call/name optional when only browsing
 handle enter key to show just my schedule, or maybe just log in
-change delete to a dropdown list edit/delete
-make heatmap work
 
 admin screen, admin users
 
@@ -37,6 +38,7 @@ reinstate checkboxes for band and mode, with the effect of narrowing the list of
 can't create new passwords!!
 create a (hidden) admin page that can wipe the db or create a new one
 apply new normalizer causes logout
+make heatmap work
 close visualizer popup when click outside
 make login style on scheduler the same as on visualizer
 better tooltip management
@@ -47,4 +49,5 @@ slot_edit popup better size and moveable
 hover over visualizer grid shows summary of what's in it
 slot_edit can now edit existing entry
 include event name and other details in ical export
+link visualizer to main scheduler
 
