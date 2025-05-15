@@ -30,3 +30,6 @@ vendor/
 
 # Ignore environment files
 .env
+
+# Ignore secrets
+secrets.*

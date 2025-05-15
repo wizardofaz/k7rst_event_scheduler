@@ -2,21 +2,34 @@
 
 require_once 'logging.php'; // to get DEBUG_ constants
 
-define('APP_VERSION', '1.0.5.15 2025-05-15');
+define('APP_VERSION', '1.0.5.15-2 2025-05-15');
 
-if (strpos(__dir__ . '/', '/alpha/') !== false) {
+if (strpos(__dir__ . '/', '.alpha/') !== false) {
     define('CODE_VERSION', 'alpha');
     define('DB_NAME', 'u419577197_CACTUS_alpha');
     define('DB_USER', 'u419577197_cactus_alpha');
-    define('DB_PASSWORD', 'RST_k7rst');
     define('DEBUG_LEVEL', DEBUG_ERROR);
 } else {
     define('CODE_VERSION', 'beta');
     define('DB_NAME', 'u419577197_CACTUS_sched');
     define('DB_USER', 'u419577197_cactus');
-    define('DB_PASSWORD', 'RST_k7rst');
     define('DEBUG_LEVEL', DEBUG_ERROR);
 }
+
+// assuming our code lives in some directory below public_html
+// and the secrets file lives a parallel path with /secrets/ 
+// substituted for /public_html/, this should find the correct secrets.php.
+// Get the name of the current app directory (e.g., "cactus" or "cactus.alpha")
+$subdir = basename(__DIR__);
+$secrets_path = __DIR__ . "/../../secrets/{$subdir}/secrets.php";
+if (!file_exists($secrets_path)) {
+    die("❌ secrets.php not found for environment '{$subdir}'");
+}
+// database password lives here, maybe other stuff too
+require_once $secrets_path;
+log_msg(DEBUG_INFO, "config.php: DB_NAME: " . DB_NAME);
+log_msg(DEBUG_INFO, "config.php: DB_USER: " . DB_USER);
+log_msg(DEBUG_INFO, "config.php: secrets_path is: " . $secrets_path);
 
 define('DB_SERVER', '127.0.0.1:3306');
 

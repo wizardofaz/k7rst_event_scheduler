@@ -50,4 +50,6 @@ hover over visualizer grid shows summary of what's in it
 slot_edit can now edit existing entry
 include event name and other details in ical export
 link visualizer to main scheduler
+logged in status is maintained across GET from scheduler to visualizer
+moved db password to a file of its own (secrets.php) outside of public_html to protect that password
 
