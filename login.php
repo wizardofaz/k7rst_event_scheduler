@@ -20,12 +20,12 @@ function login($db_conn, $op_call, $op_name, $op_pw) {
 
     $authorized = false;
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        if(isset($_SESSION['logged_in_call'])) {
-            $op_call = $_SESSION['logged_in_call'];
-            $op_name = $_SESSION['logged_in_name'];
-        }
+    if(isset($_SESSION['logged_in_call'])) {
+        $op_call = $_SESSION['logged_in_call'];
+        $op_name = $_SESSION['logged_in_name'];
+    }
 
+    if ($op_call !== '') {
         if (isset($_SESSION['authenticated_users'][$op_call]) 
             && $_SESSION['authenticated_users'][$op_call]
             && !$op_pw) {

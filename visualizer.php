@@ -3,9 +3,9 @@
 
 session_start();
 require_once 'config.php';
+require_once 'logging.php';
 require_once 'db.php';
 require_once 'login.php';
-require_once 'logging.php';
 
 $conn = db_get_connection();
 

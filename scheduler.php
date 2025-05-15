@@ -29,8 +29,8 @@ if (isset($_GET['logout'])) {
 $session_timeout_minutes = round(ini_get('session.gc_maxlifetime') / 60);
 
 // Initialize variables
-$op_call_input = '';
-$op_name_input = '';
+$op_call_input = ($_SESSION['logged_in_call'] ?? '');
+$op_name_input =  ($_SESSION['logged_in_name'] ?? '');
 $op_password_input = '';
 $start_date = '';
 $end_date = '';
@@ -251,8 +251,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 	title="<?= htmlspecialchars(EVENT_NAME . " scheduler, version " . APP_VERSION) ?>" />
 
 <?php
-// Only log debugging info after the page content is rendered
-if (DEBUG_LEVEL > 0) {trigger_error("Remember to turn off logging when finished debugging (" . CODE_VERSION . ")", E_USER_WARNING);}
 ?>
 
 <h2><?php echo EVENT_NAME ?> Operator Scheduling 

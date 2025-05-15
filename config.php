@@ -1,8 +1,8 @@
 <?php
 
-require_once 'logging.php';
+require_once 'logging.php'; // to get DEBUG_ constants
 
-define('APP_VERSION', '1.0.5.14 2025-05-14');
+define('APP_VERSION', '1.0.5.15 2025-05-15');
 
 if (strpos(__dir__ . '/', '/alpha/') !== false) {
     define('CODE_VERSION', 'alpha');
