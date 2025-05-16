@@ -1,0 +1,35 @@
+-- create_event_db_template.sql
+-- Generated on 2025-05-16 20:11:18
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+-- --------------------------------------------------------
+-- Table structure for table `operator_passwords`
+CREATE TABLE `operator_passwords` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `op_call` varchar(20) NOT NULL,
+  `op_password` varchar(20) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `op_call` (`op_call`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `schedule`
+CREATE TABLE `schedule` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `date` date NOT NULL,
+  `time` time NOT NULL,
+  `op_call` varchar(20) NOT NULL,
+  `op_name` varchar(50) NOT NULL,
+  `band` varchar(10) NOT NULL,
+  `mode` varchar(10) NOT NULL,
+  `club_station` varchar(20) NOT NULL,
+  `notes` varchar(200) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_operator_per_hour` (`date`,`time`,`op_call`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Operator schedule for CACTUS event';
+
+COMMIT;

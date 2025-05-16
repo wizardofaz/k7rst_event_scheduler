@@ -2,12 +2,10 @@
 
 require_once 'logging.php'; // to get DEBUG_ constants
 
-define('APP_VERSION', '1.0.5.15-2 2025-05-15');
+define('APP_VERSION', '1.0.5.16 2025-05-16');
 
 if (strpos(__dir__ . '/', '.alpha/') !== false) {
     define('CODE_VERSION', 'alpha');
-    define('DB_NAME', 'u419577197_CACTUS_alpha');
-    define('DB_USER', 'u419577197_cactus_alpha');
     define('DEBUG_LEVEL', DEBUG_ERROR);
 } else {
     define('CODE_VERSION', 'beta');
