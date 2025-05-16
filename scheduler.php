@@ -247,8 +247,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 </head>
 
 <body>
-<img src="img/RST-header-768x144.jpg" alt="Radio Society of Tucson K7RST" 
-	title="<?= htmlspecialchars(EVENT_NAME . " scheduler, version " . APP_VERSION) ?>" />
+<div class="header-wrap">
+  <img src="img/RST-header-768x144.jpg" alt="Radio Society of Tucson K7RST"
+       title="<?= htmlspecialchars(EVENT_NAME . ' scheduler, version ' . APP_VERSION) ?>" />
+  <div class="vertical-label">VER<?= APP_VERSION ?></div>
+</div>
 
 <?php
 ?>

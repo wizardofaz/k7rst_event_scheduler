@@ -216,3 +216,17 @@ label {
   visibility: visible;
   opacity: 1;
 }
+
+.header-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.vertical-label {
+  writing-mode: vertical-rl;
+  /* transform: rotate(180deg);  /* optional: makes text bottom-to-top */
+  margin-left: 10px;         /* space between image and label */
+  font-weight: bold;
+  font-family: sans-serif;
+  font-size: 10px;
+}
