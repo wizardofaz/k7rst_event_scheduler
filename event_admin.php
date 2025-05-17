@@ -136,21 +136,110 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['config_db'])) {
     <title>Event Admin</title>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="event_admin.css">
+    <link href="https://cdn.jsdelivr.net/npm/jsoneditor@9.10.0/dist/jsoneditor.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jsoneditor@9.10.0/dist/jsoneditor.min.js"></script>
     <script>
     function addRow() {
         const table = document.getElementById('config-table');
         const lastRow = table.rows[table.rows.length - 1];
         const keyInput = lastRow.cells[0].firstChild;
-        const valInput = lastRow.cells[1].firstChild;
+        const valInput = lastRow.cells[2]?.querySelector('input');
 
-        if (keyInput.value !== '' || valInput.value !== '') {
+        if (keyInput.value !== '' || (valInput && valInput.value !== '')) {
             const newRow = table.insertRow();
-            const keyCell = newRow.insertCell();
-            const valCell = newRow.insertCell();
-            keyCell.innerHTML = '<input type="text" name="config_keys[]" oninput="this.value = this.value.toUpperCase(); addRow()">';
-            valCell.innerHTML = '<input type="text" name="config_values[]" oninput="addRow()">';
+            newRow.innerHTML = `
+                <td><input type="text" name="config_keys[]" oninput="this.value = this.value.toUpperCase(); addRow()" style="width: 100%"></td>
+                                <td></td>
+                                <td><input type="text" name="config_values[]" oninput="addRow()" style="width: 100%"></td>
+            `;
+            setupJSONEditors();
         }
     }
+
+    function setupJSONEditors() {
+    const rows = document.querySelectorAll('#config-table tr');
+    rows.forEach(row => {
+        const keyInput = row.cells?.[0]?.querySelector('input');
+        const valueCell = row.cells?.[2];
+        if (!keyInput || !valueCell) return;
+
+        const toggleCell = row.cells[1];
+        if (toggleCell.childNodes.length > 0) return;
+
+        const button = document.createElement('button');
+        button.textContent = '📝';
+        button.title = 'Toggle JSON editor';
+        button.type = 'button';
+        button.style.padding = '0';
+        button.style.margin = '0';
+        button.style.border = 'none';
+        button.style.background = 'none';
+        button.style.cursor = 'pointer';
+
+        toggleCell.style.textAlign = 'center';
+        toggleCell.style.width = '1%';
+        toggleCell.appendChild(button);
+
+        button.addEventListener('click', () => {
+            const currentCell = row.cells[2];
+
+            const existingEditor = row._jsonEditor;
+            const existingHiddenInput = row._hiddenInput;
+
+            if (existingEditor && existingHiddenInput) {
+                const editorContent = existingEditor.getText();
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.name = 'config_values[]';
+                input.value = editorContent;
+                input.style.width = '100%';
+
+                currentCell.innerHTML = '';
+                currentCell.appendChild(input);
+
+                delete row._jsonEditor;
+                delete row._hiddenInput;
+            } else {
+                const currentInput = currentCell.querySelector('input');
+                const jsonHolder = document.createElement('div');
+                jsonHolder.style.height = '200px';
+                currentCell.innerHTML = '';
+                currentCell.appendChild(jsonHolder);
+
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'config_values[]';
+                currentCell.appendChild(hiddenInput);
+
+                const editor = new JSONEditor(jsonHolder, {
+                    mode: 'code',
+                    mainMenuBar: false
+                });
+
+                try {
+                    editor.set(JSON.parse(currentInput.value));
+                } catch (e) {
+                    editor.setText(currentInput.value);
+                    alert("⚠️ Warning: Value could not be parsed as JSON. Editing as plain text.");
+                }          
+
+                row._jsonEditor = editor;
+                row._hiddenInput = hiddenInput;
+            }
+        });
+    });
+}
+
+    window.addEventListener('DOMContentLoaded', () => {
+        setupJSONEditors();
+        document.querySelector('form[method="post"]').addEventListener('submit', () => {
+            document.querySelectorAll('#config-table tr').forEach(row => {
+                if (row._jsonEditor && row._hiddenInput) {
+                    row._hiddenInput.value = JSON.stringify(row._jsonEditor.get());
+                }
+            });
+        });
+    });
     </script>
 </head>
 <body>
@@ -191,16 +280,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['config_db'])) {
     <form method="post">
         <input type="hidden" name="config_db" value="<?= htmlspecialchars($_GET['config_db'] ?? '') ?>">
         <table id="config-table" border="1" style="width:100%">
-            <tr><th style="width:20%">Key</th><th>Value (JSON if needed)</th></tr>
+            <tr><th style="width:20%">Key</th><th style="width:5%">📝</th><th style="width:75%">Value (JSON if needed)</th></tr>
             <?php foreach ($config_data as $pair): ?>
-                <tr>
-                    <td><input type="text" name="config_keys[]" value="<?= htmlspecialchars($pair['name']) ?>" oninput="this.value = this.value.toUpperCase();"></td>
-                    <td><input type="text" name="config_values[]" value="<?= htmlspecialchars($pair['value']) ?>"></td>
-                </tr>
+            <tr>
+              <td><input type="text" name="config_keys[]" value="<?= htmlspecialchars($pair['name']) ?>" oninput="this.value = this.value.toUpperCase(); addRow()" style="width: 100%"></td>
+              <td></td>
+              <td><input type="text" name="config_values[]" value="<?= htmlspecialchars($pair['value']) ?>" oninput="addRow()" style="width: 100%"></td>            
+            </tr>
             <?php endforeach; ?>
             <tr>
-                <td><input type="text" name="config_keys[]" oninput="this.value = this.value.toUpperCase(); addRow()"></td>
-                <td><input type="text" name="config_values[]" oninput="addRow()"></td>
+                <td><input type="text" name="config_keys[]" oninput="this.value = this.value.toUpperCase(); addRow()" style="width: 100%"></td>
+                <td></td>
+                <td><input type="text" name="config_values[]" oninput="addRow()" style="width: 100%"></td>
             </tr>
         </table><br>
         <button type="submit">Save Configuration</button>
