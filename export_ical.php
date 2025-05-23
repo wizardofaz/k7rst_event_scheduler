@@ -40,7 +40,7 @@ foreach ($table_data as $row) {
     echo "DTSTAMP:" . gmdate('Ymd\THis\Z') . "\r\n";
     echo "DTSTART:$start\r\n";
     echo "DTEND:$end\r\n";
-    echo "SUMMARY: " . EVENT_NAME . ": " . "$band $mode - $op\r\n";
+    echo "SUMMARY: " . EVENT_DISPLAY_NAME . "(" . EVENT_NAME . "): " . "$band $mode - $op\r\n";
     echo "DESCRIPTION:" . addcslashes("Operator: $op $name\nBand/Mode: $band $mode\nStation: $station\n$notes", "\n") . "\r\n";
     echo "END:VEVENT\r\n";
 }

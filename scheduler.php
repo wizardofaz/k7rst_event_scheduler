@@ -235,7 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title><?php echo EVENT_NAME ?> Operator Scheduling</title>
+    <title><?php echo htmlspecialchars(EVENT_DISPLAY_NAME) ?> Operator Scheduling</title>
     <link rel="icon" href="img/cropped-RST-Logo-1-32x32.jpg">
 	<link rel="stylesheet" href="scheduler.css">
 
@@ -246,14 +246,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 <body>
 <div class="header-wrap">
   <img src="img/RST-header-768x144.jpg" alt="Radio Society of Tucson K7RST"
-       title="<?= htmlspecialchars(EVENT_NAME . ' scheduler, version ' . APP_VERSION) ?>" />
+       title="<?= htmlspecialchars(EVENT_DISPLAY_NAME . ' scheduler, version ' . APP_VERSION) ?>" />
   <div class="vertical-label">VER<?= APP_VERSION ?></div>
 </div>
 
 <?php
 ?>
 
-<h2><?php echo EVENT_NAME ?> Operator Scheduling 
+<h2><?php echo htmlspecialchars(EVENT_DISPLAY_NAME) ?> Operator Scheduling 
 <a href="how-do-i-use-this.php" target="_blank">(How do I use this?)</a>
 <a href="visualizer.php">(Switch to "Visualizer" grid)</a></h2>
 

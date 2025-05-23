@@ -8,7 +8,7 @@ require_once 'event_db.php';
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Test Event Config: <?= htmlspecialchars(EVENT_NAME) ?></title>
+    <title>Test Event Config: <?= htmlspecialchars(EVENT_DISPLAY_NAME) . "(" . htmlspecialchars(EVENT_NAME) . ")"?></title>
     <meta charset="UTF-8">
 </head>
 <body>

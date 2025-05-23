@@ -3,7 +3,7 @@
 
 require_once 'logging.php'; // to get DEBUG_ constants
 
-define('APP_VERSION', '1.0.5.16 2025-05-16');
+define('APP_VERSION', '1.0.5.23 2025-05-23');
 
 if (strpos(__dir__ . '/', '.alpha/') !== false) {
     define('CODE_VERSION', 'alpha');

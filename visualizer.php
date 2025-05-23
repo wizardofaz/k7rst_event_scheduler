@@ -67,7 +67,7 @@ function score_to_color($norm) {
 }
 
 // --- HTML output ---
-echo "<html><head><title>" . EVENT_NAME . " Visualizer</title>
+echo "<html><head><title>" . htmlspecialchars(EVENT_DISPLAY_NAME) . "(" . htmlspecialchars(EVENT_NAME) . ") Visualizer</title>
     <link rel=\"icon\" href=\"img/cropped-RST-Logo-1-32x32.jpg\">
     <link rel=\"stylesheet\" href=\"visualizer.css\">
 <script>
@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
 echo "<img src=\"img/RST-header-768x144.jpg\" alt=\"Radio Society of Tucson K7RST\" "
 	. "title=\"<?= htmlspecialchars(EVENT_NAME . \" scheduler, version \" . APP_VERSION) ?>\" />";
 
-echo "<h2>" . EVENT_NAME . " Schedule Visualizer <a href=\"scheduler.php\">(Switch to tabular view)</a></h2>";
+echo "<h2>" . htmlspecialchars(EVENT_DISPLAY_NAME) . "(" . htmlspecialchars(EVENT_NAME) . ") Schedule Visualizer <a href=\"scheduler.php\">(Switch to tabular view)</a></h2>";
 
 if ($authorized) {
     echo "<form method='post' style='display:inline;'>

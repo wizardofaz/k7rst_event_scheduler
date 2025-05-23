@@ -4,7 +4,7 @@ require_once 'config.php';
 <!DOCTYPE html>
 <html>
 <head>
-    <title>How Do I Use This? – <?= EVENT_NAME ?> Operator Scheduler</title>
+    <title>How Do I Use This? – <?= htmlspecialchars(EVENT_DISPLAY_NAME) ?> Operator Scheduler</title>
     <link rel="icon" href="img/cropped-RST-Logo-1-32x32.jpg">
     <style>
         body {
@@ -29,7 +29,7 @@ require_once 'config.php';
 
 <h1>How Do I Use This?</h1>
 
-<p>This page will help you understand how to use the <?= EVENT_NAME ?> Operator Scheduling Tool 
+<p>This page will help you understand how to use the <?= htmlspecialchars(EVENT_DISPLAY_NAME) ?> Operator Scheduling Tool 
 to sign up for operating time during the special event.</p>
 <p><strong>Tip: </strong>There are pop-up help message boxes activated by hovering your 
 mouse over various parts of the screen. Hopefully these are helpful, but if one of them
@@ -98,7 +98,7 @@ to make it go away.</p>
 </div>
 
 <h2>Need Help?</h2>
-<p>If you run into trouble or have questions, please contact your <?= EVENT_NAME ?> coordinator for assistance.</p>
+<p>If you run into trouble or have questions, please contact your <?= htmlspecialchars(EVENT_DISPLAY_NAME) ?> coordinator for assistance.</p>
 
 <p><a href="scheduler.php">← Back to the Scheduler</a></p>
 
