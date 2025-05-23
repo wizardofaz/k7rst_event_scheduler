@@ -3,6 +3,8 @@ Scheduler todo
 Bugs:
 
 todo:
+initialize tables and clone not working yet
+cleanup files in repo but no longer in use
 get rid of "all" in the various lists??
 in table view, change delete to a dropdown list edit/delete
 update instructions in "how do I use this"

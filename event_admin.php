@@ -4,13 +4,22 @@
 require_once 'config.php';
 require_once 'event_db.php';
 
-$event_names = list_events_from_master_with_status();
+$event_list = list_events_from_master_with_status();
 $empty_events = [];
-foreach ($event_names as $i => $event_name) {
-    if ($event_name['status'] === EVENT_DB_EMPTY) {
-        $empty_events[] = $event_name;
-        unset($event_names[$i]);
+$non_existant_events = [];
+$non_event_dbs = [];
+foreach ($event_list as $i => $event) {
+    if ($event['status'] === EVENT_DB_EMPTY) {
+        $empty_events[] = $event;
+        unset($event_list[$i]);
+    } else if ($event['status'] === EVENT_NOT_EXIST) {
+        $non_existant_events[] = $event;
+        unset($event_list[$i]);
+    } else if ($event['status'] === EVENT_MALSTRUCTURED) {
+        $non_event_dbs[] = $event;
+        unset($event_list[$i]);
     }
+
 }
 
 $config_data = [];
@@ -46,8 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['event_name']) && !iss
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['config_keys']) && isset($_POST['config_values']) && isset($_POST['config_event'])) {
     $target_event = $_POST['config_event'];
-    $conn = new mysqli(DB_SERVER, DB_ADMIN_USER, DB_ADMIN_PASSWORD, $target_event);
-    if ($conn->connect_error) {
+    $conn = get_event_db_connection_from_master($target_event);
+    if (!$conn || $conn->connect_error) {
         $config_message = "❌ Failed to connect to $target_event";
     } else {
         $conn->query("DELETE FROM event_config");
@@ -192,18 +201,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['config_event'])) {
 <body>
     <h2>Create New Event</h2>
     <?php if (isset($message)) echo "<p><strong>$message</strong></p>"; ?>
-    <?php if (!empty($empty_events)): ?>
-      <p>Suggested empty events:</p>
+
+    <?php if (!empty(array_merge($non_existant_events, $non_event_dbs))): ?>
+      <p>Listed events with no db or invalid db:</p>
       <ul>
-        <?php foreach ($empty_events as $s) echo "<li>{$s['event_name']}</li>"; ?>
+        <?php foreach (array_merge($non_existant_events, $non_event_dbs) as $event) echo "<li>{$event['event_name']}</li>"; ?>
       </ul>
-    <?php else: ?>
-      <p><em>(No empty events found.)</em></p>
     <?php endif; ?>
 
     <form method="post">
-      <label for="event_name">Existing Empty Event Name:</label>
-      <select name="event_name" id="event_name" required>
+      <label for="empty_event">Existing Empty Events:</label>
+      <select name="empty_event" id="empty_event" required>
         <option value="">-- Select an event --</option>
         <?php foreach ($empty_events as $event): ?>
             <option value="<?= htmlspecialchars($event['event_name']) ?>">
@@ -215,7 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['config_event'])) {
       <label for="clone_from">Clone config from:</label>
       <select name="clone_from" id="clone_from">
         <option value="">-- Optional --</option>
-        <?php foreach ($event_names as $event): ?>
+        <?php foreach ($event_list as $event): ?>
             <option value="<?= htmlspecialchars($event['event_name']) ?>">
                 <?= htmlspecialchars($event['event_name']) ?> 
             </option>
@@ -231,7 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['config_event'])) {
         <label for="config_event">Event:</label>
         <select name="config_event" id="config_event" onchange="this.form.submit()" required>
             <option value="">-- Select an event --</option>
-            <?php foreach ($event_names as $event): ?>
+            <?php foreach ($event_list as $event): ?>
                 <?php $selected = isset($_GET['config_event']) && $_GET['config_event'] === $event['event_name'] ? 'selected' : ''; ?>
                 <option value="<?= htmlspecialchars($event['event_name']) ?>" 
                     <?= $selected ?>><?= htmlspecialchars($event['event_name']) ?>
@@ -247,11 +255,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['config_event'])) {
             <input type="hidden" name="config_event" value="<?= htmlspecialchars($_GET['config_event'] ?? '') ?>">
             <table id="config-table" border="1" style="width:100%">
                 <tr><th style="width:20%">Key</th><th style="width:5%">📝</th><th style="width:75%">Value (JSON if needed)</th></tr>
-                <?php foreach ($config_data as $pair): ?>
+                <?php foreach ($config_data as $name => $value): ?>
                 <tr>
-                <td><input type="text" name="config_keys[]" value="<?= htmlspecialchars($pair['name']) ?>" oninput="this.value = this.value.toUpperCase(); addRow()" style="width: 100%"></td>
+                <td><input type="text" name="config_keys[]" value="<?= htmlspecialchars($name) ?>" oninput="this.value = this.value.toUpperCase(); addRow()" style="width: 100%"></td>
                 <td></td>
-                <td><input type="text" name="config_values[]" value="<?= htmlspecialchars($pair['value']) ?>" oninput="addRow()" style="width: 100%"></td>            
+                <td><input type="text" name="config_values[]" value="<?= htmlspecialchars($value) ?>" oninput="addRow()" style="width: 100%"></td>            
                 </tr>
                 <?php endforeach; ?>
                 <tr>
