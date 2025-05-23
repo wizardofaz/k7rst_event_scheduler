@@ -43,9 +43,9 @@ $stmt = $conn->prepare("
 $stmt->bind_param("sssssss", $band, $mode, $club_station, $notes, $date, $time, $logged_in_call);
 
 if ($stmt->execute()) {
-    log_msg(DEBUG_INFO, "✅ Schedule updated by $logged_in_call: $date $time $band $mode");
+    log_msg(DEBUG_INFO, "Schedule updated by $logged_in_call: $date $time $band $mode");
 } else {
-    log_msg(DEBUG_WARNING, "⚠️ Failed update by $logged_in_call: " . $stmt->error);
+    log_msg(DEBUG_ERROR, "Failed update by $logged_in_call: " . $stmt->error);
     echo "<p>Error: Update failed.</p>";
     exit;
 }

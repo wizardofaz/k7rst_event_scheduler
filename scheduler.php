@@ -8,17 +8,14 @@ ini_set('session.gc_maxlifetime', 7200);
 session_set_cookie_params(7200);
 session_start();
 
-// Some useful unicode symbols for tagging log messages:
-// ✅ ✔️ ❌ ⚠️ ℹ️ 🧪 🔍 🚨 📢 📣 📂 🗂️ 🎉 🏆 🕒 📅 💡 🔧 🧰
-
-log_msg(DEBUG_VERBOSE, "📢 Session start - Current session data: " . json_encode($_SESSION));
+log_msg(DEBUG_VERBOSE, "Session start - Current session data: " . json_encode($_SESSION));
 
 if (isset($_GET['logout'])) {
 
     // Destroy the session and clear session variables
     session_destroy();
 
-    log_msg(DEBUG_INFO, "⚠️ Logout, session destroyed. POST was: " . json_encode($_POST));
+    log_msg(DEBUG_INFO, "Logout, session destroyed. POST was: " . json_encode($_POST));
 
     // Redirect to the same page without the query string (removing ?logout)
     header("Location: " . strtok($_SERVER["REQUEST_URI"], '?'));
@@ -85,10 +82,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$_SESSION['most_recent_show'] = 'scheduled_only';
 	}
 
-    log_msg(DEBUG_VERBOSE, "ℹ️ Incoming POST: " . json_encode($_POST));
-    log_msg(DEBUG_INFO, "ℹ️ Session authenticated_users: " . json_encode($_SESSION['authenticated_users'] ?? []));
-    log_msg(DEBUG_INFO, "ℹ️ op_call_input: $op_call_input");
-	log_msg(DEBUG_INFO, "ℹ️ most_recent_show: " . (isset($_SESSION['most_recent_show']) ? $_SESSION['most_recent_show'] : '(not set)'));
+    log_msg(DEBUG_VERBOSE, "Incoming POST: " . json_encode($_POST));
+    log_msg(DEBUG_INFO, "Session authenticated_users: " . json_encode($_SESSION['authenticated_users'] ?? []));
+    log_msg(DEBUG_INFO, "op_call_input: $op_call_input");
+	log_msg(DEBUG_INFO, "most_recent_show: " . (isset($_SESSION['most_recent_show']) ? $_SESSION['most_recent_show'] : '(not set)'));
 }
 
 $db_conn = db_get_connection();
@@ -106,7 +103,7 @@ $band_mode_conflict = 0;
 // build the table to be displayed, optionally with add/delete buttons (if authorized)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authentication) ) {
     if (isset($_POST['add_selected']) && isset($_POST['slots'])) {
-		log_msg(DEBUG_INFO, "✅ processing schedule add:");
+		log_msg(DEBUG_INFO, "processing schedule add:");
         foreach ($_POST['slots'] as $slot) {
             list($date, $time) = explode('|', $slot);
 			$band = $_POST['band'][$slot] ?? null;
@@ -145,12 +142,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
     }
 
     if (isset($_POST['delete_selected']) && isset($_POST['delete_slots'])) {
-		log_msg(DEBUG_INFO, "✅ processing schedule delete of " . json_encode($_POST['delete_slots']));
+		log_msg(DEBUG_INFO, "processing schedule delete of " . json_encode($_POST['delete_slots']));
         foreach ($_POST['delete_slots'] as $slot) {
             list($date, $time, $band, $mode) = explode('|', $slot);
-			log_msg(DEBUG_DEBUG, "✅ processing delete: $date $time $band $mode $op_call_input");
+			log_msg(DEBUG_DEBUG, "processing delete: $date $time $band $mode $op_call_input");
 			$deleted = db_delete_schedule_line($db_conn, $date, $time, $band, $mode, $op_call_input);
-			log_msg(DEBUG_DEBUG, "✅ delete result: " . $deleted);
+			log_msg(DEBUG_DEBUG, "delete result: " . $deleted);
         }
 
 		// trigger the display of the schedule asif the most recently used show button
@@ -160,10 +157,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 		$scheduled_only = ($_SESSION['most_recent_show'] === 'scheduled_only');
     }
 	
-	if($mine_only) log_msg(DEBUG_INFO, "✅ display schedule with mine_only");
-	if($mine_plus_open) log_msg(DEBUG_INFO, "✅ display schedule with mine_plus_open");
-	if($complete_calendar) log_msg(DEBUG_INFO, "✅ display schedule with complete_calendar");
-	if($scheduled_only) log_msg(DEBUG_INFO, "✅ display schedule with scheduled_only");
+	if($mine_only) log_msg(DEBUG_INFO, "display schedule with mine_only");
+	if($mine_plus_open) log_msg(DEBUG_INFO, "display schedule with mine_plus_open");
+	if($complete_calendar) log_msg(DEBUG_INFO, "display schedule with complete_calendar");
+	if($scheduled_only) log_msg(DEBUG_INFO, "display schedule with scheduled_only");
 
 	// if any "show" button was pressed
     if ($complete_calendar || $mine_only || $mine_plus_open || $scheduled_only) {
@@ -174,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
             $end_date = $event_end_date;
         }
 		
-		log_msg(DEBUG_INFO, "✅ start/end dates: " . $start_date . " " . $end_date);
+		log_msg(DEBUG_INFO, "start/end dates: " . $start_date . " " . $end_date);
 
         $dates = [];
         $cur = strtotime($start_date);
@@ -198,8 +195,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
             }
         }
 
-		log_msg(DEBUG_VERBOSE, "✅ dates[]: " . json_encode($dates));
-		log_msg(DEBUG_VERBOSE, "✅ times[]: " . json_encode($times));
+		log_msg(DEBUG_VERBOSE, "dates[]: " . json_encode($dates));
+		log_msg(DEBUG_VERBOSE, "times[]: " . json_encode($times));
 
         foreach ($dates as $date) {
             foreach ($times as $time) {
@@ -229,7 +226,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
             }
         }
     }
-	log_msg(DEBUG_DEBUG, "🧪 Formatting page with result: " . json_encode($table_rows));
+	log_msg(DEBUG_DEBUG, "Formatting page with result: " . json_encode($table_rows));
 }
 
 ?>

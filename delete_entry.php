@@ -36,11 +36,11 @@ if (!$authorized) {
 $result = db_delete_schedule_line($conn, $date, $time, $band, $mode, $op_call);
 
 if ($result) {
-    log_msg(DEBUG_INFO, "✅ Deleted successfully");
+    log_msg(DEBUG_INFO, "Deleted successfully");
     echo "OK";
 } else {
     http_response_code(404);
-    log_msg(DEBUG_INFO, "❌ Delete failed");
+    log_msg(DEBUG_ERROR, "Delete failed");
     echo "Entry not found or deletion failed.";
 }
 ?>
