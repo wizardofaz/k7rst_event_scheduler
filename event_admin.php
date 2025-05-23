@@ -3,39 +3,43 @@
 
 require_once 'config.php';
 require_once 'event_db.php';
+require_once 'logging.php';
 
-$event_list = list_events_from_master_with_status();
+$valid_events = list_events_from_master_with_status();
 $empty_events = [];
 $non_existant_events = [];
-$non_event_dbs = [];
-foreach ($event_list as $i => $event) {
+$not_valid_events = [];
+foreach ($valid_events as $i => $event) {
     if ($event['status'] === EVENT_DB_EMPTY) {
         $empty_events[] = $event;
-        unset($event_list[$i]);
+        unset($valid_events[$i]);
     } else if ($event['status'] === EVENT_NOT_EXIST) {
         $non_existant_events[] = $event;
-        unset($event_list[$i]);
+        unset($valid_events[$i]);
     } else if ($event['status'] === EVENT_MALSTRUCTURED) {
-        $non_event_dbs[] = $event;
-        unset($event_list[$i]);
+        $not_valid_events[] = $event;
+        unset($valid_events[$i]);
     }
 
 }
 
 $config_data = [];
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['event_name']) && !isset($_POST['config_keys'])) {
-    $new_event_name = trim($_POST['event_name']);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['target_event']) && !isset($_POST['config_keys'])) {
+    $new_event_name = trim($_POST['target_event']);
     if (!$new_event_name) {
         $message = "Event name is required.";
     } else {
         if ($result = create_event_db_tables($new_event_name)) {
             $message = "✅ Event database for $new_event_name initialized successfully.";
+            log_msg(DEBUG_INFO, "Initialized $new_event_name successfully.");
         } else {
-            $message = "❌ Event database for $new_event_name' failed to initialize successfully.";
+            $message = "❌ Event database for $new_event_name failed to initialize successfully.";
+            log_msg(DEBUG_ERROR, "Initialization of $new_event_name failed.");
         };
 
-        if ($result === true && isset($_POST['clone_from']) && $_POST['clone_from'] !== '') {
-            $source_event = $_POST['clone_from'];
+        if ($result === true && isset($_POST['source_event']) && $_POST['source_event'] !== '') {
+            $source_event = $_POST['source_event'];
             $source_config = get_event_config_as_kv($source_event);
             $conn = get_event_db_connection_from_master($new_event_name);
             if (!$conn->connect_error && !empty($source_config)) {
@@ -46,9 +50,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['event_name']) && !iss
                         $stmt->execute();
                     }
                     $stmt->close();
+                    log_msg(DEBUG_INFO, "Successfully cloned from $source_event into $new_event_name.");
+                    $message .= "<br>✅ Cloned from $source_event into $new_event_name";
+                } else {
+                    $message .= "<br>❌ Clone config failed: " . $conn->error;
+                    log_msg(DEBUG_ERROR, "Clone from $source_event into $new_event_name, failed: " . $conn->error);
                 }
+
+                $conn->close();
             }
-            $conn->close();
         }
     }
 }
@@ -202,30 +212,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['config_event'])) {
     <h2>Create New Event</h2>
     <?php if (isset($message)) echo "<p><strong>$message</strong></p>"; ?>
 
-    <?php if (!empty(array_merge($non_existant_events, $non_event_dbs))): ?>
+    <?php if (!empty(array_merge($non_existant_events, $not_valid_events))): ?>
       <p>Listed events with no db or invalid db:</p>
       <ul>
-        <?php foreach (array_merge($non_existant_events, $non_event_dbs) as $event) echo "<li>{$event['event_name']}</li>"; ?>
+        <?php foreach (array_merge($non_existant_events, $not_valid_events) as $e) echo "<li>{$e['event_name']}</li>"; ?>
       </ul>
     <?php endif; ?>
 
     <form method="post">
-      <label for="empty_event">Existing Empty Events:</label>
-      <select name="empty_event" id="empty_event" required>
-        <option value="">-- Select an event --</option>
-        <?php foreach ($empty_events as $event): ?>
-            <option value="<?= htmlspecialchars($event['event_name']) ?>">
-                <?= htmlspecialchars($event['event_name']) ?> 
+      <label for="target_id">Empty Events (targets):</label>
+      <select name="target_event" id="target_id" required>
+        <option value="">-- Select a target event --</option>
+        <?php foreach ($empty_events as $e): ?>
+            <option value="<?= htmlspecialchars($e['event_name']) ?>">
+                <?= htmlspecialchars($e['event_name']) ?> 
             </option>
         <?php endforeach; ?>
       </select>
 
-      <label for="clone_from">Clone config from:</label>
-      <select name="clone_from" id="clone_from">
-        <option value="">-- Optional --</option>
-        <?php foreach ($event_list as $event): ?>
-            <option value="<?= htmlspecialchars($event['event_name']) ?>">
-                <?= htmlspecialchars($event['event_name']) ?> 
+      <label for="source_id">Source Events (for cloning):</label>
+      <select name="source_event" id="source_id">
+        <option value="">-- Choose clone source (optional) --</option>
+        <?php foreach ($valid_events as $e): ?>
+            <option value="<?= htmlspecialchars($e['event_name']) ?>">
+                <?= htmlspecialchars($e['event_name']) ?> 
             </option>
         <?php endforeach; ?>
       </select>
@@ -239,10 +249,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['config_event'])) {
         <label for="config_event">Event:</label>
         <select name="config_event" id="config_event" onchange="this.form.submit()" required>
             <option value="">-- Select an event --</option>
-            <?php foreach ($event_list as $event): ?>
-                <?php $selected = isset($_GET['config_event']) && $_GET['config_event'] === $event['event_name'] ? 'selected' : ''; ?>
-                <option value="<?= htmlspecialchars($event['event_name']) ?>" 
-                    <?= $selected ?>><?= htmlspecialchars($event['event_name']) ?>
+            <?php foreach ($valid_events as $e): ?>
+                <?php $selected = isset($_GET['config_event']) && $_GET['config_event'] === $e['event_name'] ? 'selected' : ''; ?>
+                <option value="<?= htmlspecialchars($e['event_name']) ?>" 
+                    <?= $selected ?>><?= htmlspecialchars($e['event_name']) ?>
                 </option>
             <?php endforeach; ?>
         </select>
