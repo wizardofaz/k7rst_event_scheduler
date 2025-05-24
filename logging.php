@@ -11,10 +11,7 @@ define('DEBUG_CODEWORD',["ERROR","WARN","INFO","VERBOSE","DEBUG"]);
 
 define('DEBUG_SYMBOL', ['❌','⚠️','ℹ️','📢','🔍']);
 
-
 function log_msg($level,$message) {
-
-    if (!isset($_SESSION)) session_start();  // Ensure session exists
 
     if (!isset($_SESSION['debug_level'])) {
         $_SESSION['debug_level'] = defined('DEBUG_LEVEL') ? DEBUG_LEVEL : DEBUG_ERROR;

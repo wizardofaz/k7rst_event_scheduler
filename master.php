@@ -78,39 +78,41 @@ function get_event_creation_sql_from_master($event_name) {
         return null;
     }
 
+    $sql = null;
+
+    // Try event-specific SQL
     $stmt = $conn->prepare("SELECT create_sql FROM events WHERE event_name = ?");
     if (!$stmt) {
-        $conn->close();
-        log_msg(DEBUG_ERROR, "Prepare failed: " . $conn->error);
-        return null;
+        log_msg(DEBUG_ERROR, "Prepare for event-specific SQL failed: " . $conn->error);
+    } else {
+        $stmt->bind_param("s", $event_name);
+        $stmt->execute();
+        $stmt->bind_result($sql);
+        if ($stmt->fetch() && trim($sql) !== "") {
+            log_msg(DEBUG_INFO, "Fetched SQL for event '$event_name': $sql");
+            $stmt->close();
+            $conn->close();
+            return $sql;
+        }
+        $stmt->close();
     }
 
-    $stmt->bind_param("s", $event_name);
-    $stmt->execute();
-    $stmt->bind_result($sql);
-    if ($stmt->fetch()) {
-        $stmt->close();
-        $conn->close();
-        log_msg(DEBUG_INFO, "Fetched SQL for event '$event_name': $sql");
-        return $sql;
-    } 
+    log_msg(DEBUG_INFO, "No create_sql for event '$event_name'; falling back to default.");
 
-    log_msg(DEBUG_INFO, "Could not fetch SQL for event '$event_name': " . ($sql ?? '[undefined]') . "; will fetch default.");
-    $stmt->close();
-    
+    // Try default SQL
     $stmt = $conn->prepare("SELECT create_sql FROM default_schema WHERE id = 1");
     if (!$stmt) {
+        log_msg(DEBUG_ERROR, "Prepare for default SQL failed: " . $conn->error);
         $conn->close();
-        log_msg(DEBUG_ERROR, "Prepare failed: " . $conn->error);
         return null;
     }
 
     $stmt->execute();
     $stmt->bind_result($sql);
-    if ($stmt->fetch()) {
+    if ($stmt->fetch() && trim($sql) !== "") {
         log_msg(DEBUG_INFO, "Fetched default SQL for events: $sql");
     } else {
-        log_msg(DEBUG_ERROR, "Could not fetch default SQL for events" . ($sql ?? '[undefined]'));
+        log_msg(DEBUG_ERROR, "Could not fetch valid default SQL for events.");
         $sql = null;
     }
 
@@ -125,6 +127,7 @@ function create_event_db_tables($event_name) {
         log_msg(DEBUG_ERROR, "Failed to read SQL template for $event_name from master db.");
         return false;
     }
+    log_msg(DEBUG_DEBUG, "Event creation SQL from master: \n$sql");
 
     $connect_info = get_event_connection_info_from_master($event_name);
     if (!$connect_info) {
@@ -145,12 +148,19 @@ function create_event_db_tables($event_name) {
 
     foreach ($statements as $statement) {
         if ($statement === '') continue;
-        if (!$conn->query($statement)) {
-            log_msg(DEBUG_ERROR, "SQL error: " . $conn->error . "\n\tStatement: $statement.");
+
+        try {
+            if (!$conn->query($statement)) {
+                log_msg(DEBUG_ERROR, "SQL error (no exception thrown): " . $conn->error . "\n\tStatement: $statement.");
+                $conn->close();
+                return false;
+            } else {
+                log_msg(DEBUG_INFO, "SQL good query:\n\t$statement");
+            }
+        } catch (mysqli_sql_exception $e) {
+            log_msg(DEBUG_ERROR, "SQL exception: " . $e->getMessage() . "\n\tStatement: $statement.");
             $conn->close();
             return false;
-        } else {
-            log_msg(DEBUG_INFO, "SQL good query: \n\tStatement: $statement.");
         }
     }
 

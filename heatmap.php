@@ -3,10 +3,6 @@
 require_once 'config.php';
 require_once 'logging.php';
 
-ini_set('session.gc_maxlifetime', 7200);
-session_set_cookie_params(7200);
-session_start();
-
 $conn = new mysqli(DB_SERVER, DB_USER, DB_PASSWORD, DB_NAME);
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
@@ -76,8 +72,8 @@ for ($timestamp = $event_start_timestamp; $timestamp <= $event_end_timestamp; $t
     // Loop through each hour of the day (assuming hourly slots)
     for ($hour = 0; $hour < 24; $hour++) {
         // Loop through each band and mode
-        foreach ($bands_list as $band) {
-            foreach ($modes_list as $mode) {
+        foreach (BANDS_LIST as $band) {
+            foreach (MODES_LIST as $mode) {
                 // Check how many operators are scheduled for this band/mode/slot
                 $formatted_date = date('Y-m-d', $timestamp);  // Format the date
                 $num_operators = check_operator_scheduled($formatted_date, $hour, $band, $mode);

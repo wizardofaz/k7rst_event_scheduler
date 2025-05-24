@@ -1,12 +1,11 @@
 <?php
 // slot_edit.php
 
-session_start();
 require_once 'config.php';
 require_once 'db.php';
 require_once 'logging.php';
 
-$conn = db_get_connection();
+$conn = get_event_db_connection_from_master(EVENT_NAME);
 $date = $_GET['date'] ?? '';
 $time = $_GET['time'] ?? '';
 $logged_in_call = $_SESSION['logged_in_call'] ?? '';

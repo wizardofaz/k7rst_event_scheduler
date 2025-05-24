@@ -1,7 +1,5 @@
 <?php
 // admin.php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
 echo "Test: Admin page loaded successfully!";
 
 // Authentication check (optional but recommended)
@@ -12,7 +10,7 @@ echo "Test: Admin page loaded successfully!";
 
 // Database connection
 require_once 'config.php'; // Assuming config.php holds the DB connection details
-$conn = new mysqli(DB_SERVER, DB_USER, DB_PASSWORD, DB_NAME);
+$conn = get_event_db_connection_from_master(EVENT_NAME);
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
 // Function to run SQL query

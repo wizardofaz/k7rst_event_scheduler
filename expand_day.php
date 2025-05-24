@@ -2,10 +2,6 @@
 require_once 'config.php';
 require_once 'logging.php';
 
-ini_set('session.gc_maxlifetime', 7200);
-session_set_cookie_params(7200);
-session_start();
-
 log_msg(DEBUG_INFO, "expand_day.php");
 
 $conn = new mysqli(DB_SERVER, DB_USER, DB_PASSWORD, DB_NAME);
@@ -109,8 +105,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php
         $hours = range(0, 23);
         foreach ($hours as $hour) {
-            foreach ($bands_list as $band) {
-                foreach ($modes_list as $mode) {
+            foreach (BANDS_LIST as $band) {
+                foreach (MODES_LIST as $mode) {
                     // Check if this slot is already scheduled
                     $slot_found = false;
                     foreach ($scheduled_slots as $slot) {

@@ -4,10 +4,6 @@ require_once 'logging.php';
 require_once 'db.php';
 require_once 'login.php';
 
-ini_set('session.gc_maxlifetime', 7200);
-session_set_cookie_params(7200);
-session_start();
-
 log_msg(DEBUG_VERBOSE, "Session start - Current session data: " . json_encode($_SESSION));
 
 if (isset($_GET['logout'])) {
@@ -31,10 +27,10 @@ $op_name_input =  ($_SESSION['logged_in_name'] ?? '');
 $op_password_input = '';
 $start_date = '';
 $end_date = '';
-$time_slots = array_keys($time_opts); // all time slots selected by default
-$days_of_week = array_keys($day_opts); // all days of week selected by default
-$bands_list = $band_opts; // all bands selected by default
-$modes_list = $mode_opts; // all modes selected by default
+$time_slots = array_keys(TIME_OPTS); // all time slots selected by default
+$days_of_week = array_keys(DAY_OPTS); // all days of week selected by default
+$bands_list = BANDS_LIST; // all bands selected by default
+$modes_list = MODES_LIST; // all modes selected by default
 
 // which button was clicked:
 $mine_only = false;
@@ -88,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	log_msg(DEBUG_INFO, "most_recent_show: " . (isset($_SESSION['most_recent_show']) ? $_SESSION['most_recent_show'] : '(not set)'));
 }
 
-$db_conn = db_get_connection();
+$db_conn = get_event_db_connection_from_master(EVENT_NAME);
 
 $authorized = login($db_conn, $op_call_input, $op_name_input, $op_password_input);
 
@@ -186,11 +182,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 
         $times = [];
         if (in_array('all', $time_slots)) {
-            foreach ($times_by_slot as $block) $times = array_merge($times, $block);
+            foreach (TIMES_BY_SLOT as $block) $times = array_merge($times, $block);
         } else {
             foreach ($time_slots as $slot) {
-                if (isset($times_by_slot[$slot])) {
-                    $times = array_merge($times, $times_by_slot[$slot]);
+                if (isset(TIMES_BY_SLOT[$slot])) {
+                    $times = array_merge($times, TIMES_BY_SLOT[$slot]);
                 }
             }
         }
@@ -391,8 +387,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 		<div class="section">
 			<strong>What parts of the day would you like to operate?</strong><br>
 			<?php
-			// $time_opts defined in config.php
-			foreach ($time_opts as $val => $label): ?>
+			foreach (TIME_OPTS as $val => $label): ?>
 				<?php if (strtoupper($val) === 'ALL'): ?>
 					<label><input type="checkbox" class="select-all" data-group="time_slots" name="time_slots[]" value="<?= $val ?>" <?= in_array($val, $time_slots ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
 				<?php else: ?>
@@ -404,8 +399,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 		<div class="section">
 			<strong>Which days of the week?</strong><br>
 			<?php
-			// $day_opts defined in config.php
-			foreach ($day_opts as $val => $label): ?>
+			foreach (DAY_OPTS as $val => $label): ?>
 				<?php if (strtoupper($val) === 'ALL'): ?>
 					<label><input type="checkbox" class="select-all" data-group="days_of_week" name="days_of_week[]" value="<?= $val ?>" <?= in_array($val, $days_of_week ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
 				<?php else: ?>
@@ -417,8 +411,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 		<div class="section">
 			<strong>Select bands of interest:</strong><br>
 			<?php
-			// $band_opts defined in config.php
-			foreach ($band_opts as $band): ?>
+			foreach ($bands_list as $band): ?>
 				<?php if (strtoupper($band) === 'ALL'): ?>
 					<label><input type="checkbox" class="select-all" data-group="bands_list" name="bands_list[]" value="<?= $band ?>" <?= in_array($band, $bands_list ?? []) ? 'checked' : '' ?>> <?= $band ?></label>
 				<?php else: ?>
@@ -430,8 +423,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 		<div class="section">
 			<strong>Select modes of interest:</strong><br>
 			<?php
-			// $mode_opts defined in config.php
-			foreach ($mode_opts as $mode): ?>
+			foreach ($modes_list as $mode): ?>
 				<?php if (strtoupper($mode) === 'ALL'): ?>
 					<label><input type="checkbox" class="select-all" data-group="modes_list" name="modes_list[]" value="<?= $mode ?>" <?= in_array($mode, $modes_list ?? []) ? 'checked' : '' ?>> <?= $mode ?></label>
 				<?php else: ?>
@@ -544,7 +536,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 						while ($res && $row2 = $res->fetch_assoc()) {
 							if (!empty($row2['club_station'])) $used[] = $row2['club_station'];
 						}
-						foreach ($club_stations as $station):
+						foreach (CLUB_STATIONS as $station):
 							if (!in_array($station, $used)):
 						?>
 							<option value="<?= $station ?>" <?= $station === $r['club_station'] ? 'selected' : '' ?>><?= $station ?></option>

@@ -1,13 +1,12 @@
 <?php
 // delete_entry.php
 
-session_start();
 require_once 'config.php';
 require_once 'db.php';
 require_once 'login.php';
 require_once 'logging.php';
 
-$conn = db_get_connection();
+$conn = get_event_db_connection_from_master(EVENT_NAME);
 
 $op_call = strtoupper($_POST['call'] ?? ($_SESSION['logged_in_call'] ?? ''));
 $op_name = $_POST['name'] ?? ($_SESSION['logged_in_name'] ?? '');

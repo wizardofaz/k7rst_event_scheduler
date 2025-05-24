@@ -1,7 +1,6 @@
 <?php
 // update_entry.php
 
-session_start();
 require_once 'config.php';
 require_once 'db.php';
 require_once 'logging.php';
@@ -31,7 +30,7 @@ if (strtoupper($call) !== strtoupper($logged_in_call)) {
     exit;
 }
 
-$conn = db_get_connection();
+$conn = get_event_db_connection_from_master(EVENT_NAME);
 
 // Only update if the record matches the current user exactly
 $stmt = $conn->prepare("

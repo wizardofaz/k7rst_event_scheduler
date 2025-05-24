@@ -4,12 +4,6 @@
 require_once 'config.php';
 require_once 'logging.php';
 
-function db_get_connection() {
-    $conn = new mysqli(DB_SERVER, DB_USER, DB_PASSWORD, DB_NAME);
-    if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
-    return $conn;
-}
-
 // get password for a given operator's callsign
 function db_get_operator_password($conn, $call) {
     // Query to check if the operator's password exists in the database
