@@ -1,6 +1,5 @@
 <?php
 // admin.php
-echo "Test: Admin page loaded successfully!";
 
 // Authentication check (optional but recommended)
 // session_start();

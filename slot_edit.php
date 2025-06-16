@@ -25,7 +25,7 @@ $current_call_is_scheduled = false;
 if (count($entries) === 0) {
     echo "<p>No operators scheduled.</p>";
 } else {
-    echo "<table border='1' cellpadding='4'><tr><th>Call</th><th>Name</th><th>Band</th><th>Mode</th><th>Club</th><th>Notes</th>";
+    echo "<table border='1' cellpadding='4'><tr><th>Call</th><th>Name</th><th>Band</th><th>Mode</th><th>Club Station</th><th>Notes</th>";
     if ($logged_in_call !== '') echo "<th>Action</th>";
     echo "</tr>";
     foreach ($entries as $entry) {
@@ -40,7 +40,7 @@ if (count($entries) === 0) {
             // Band dropdown
             echo "<td><select name='band' form='form-{$entry['band']}{$entry['mode']}'>";
             // TODO: let's take "all" out of the array and deal with it more rationally
-            foreach ($band_opts as $band) {
+            foreach (BANDS_LIST as $band) {
                 if (strtolower($band) === 'all') continue;
                 $selected = ($entry['band'] === $band) ? 'selected' : '';
                 echo "<option value='$band' $selected>$band</option>";
@@ -49,13 +49,19 @@ if (count($entries) === 0) {
 
             // Mode dropdown
             echo "<td><select name='mode' form='form-{$entry['band']}{$entry['mode']}'>";
-            foreach ($mode_opts as $mode) {
+            foreach (MODES_LIST as $mode) {
                 if (strtolower($mode) === 'all') continue;
                 $selected = ($entry['mode'] === $mode) ? 'selected' : '';
                 echo "<option value='$mode' $selected>$mode</option>";
             }
             echo "</select></td>";
-            echo "<td><input name='club_station' value='{$entry['club_station']}' size='5' form='form-{$entry['band']}{$entry['mode']}'></td>";
+            // Club Station dropdown
+            echo "<td><select name='club_station' form='form-{$entry['club_station']}{$entry['club_station']}'>";
+            foreach (CLUB_STATIONS as $club_station) {
+                $selected = ($entry['club_station'] === $club_station) ? 'selected' : '';
+                echo "<option value='$club_station' $selected>$club_station</option>";
+            }
+            echo "</select></td>";
             echo "<td><input name='notes' value='{$entry['notes']}' size='10' form='form-{$entry['band']}{$entry['mode']}'></td>";
             echo "<td>
                 <form id='form-{$entry['band']}{$entry['mode']}' onsubmit='return updateEntry(this);' style='display:inline;'>
@@ -93,18 +99,18 @@ if ($logged_in_call !== '') {
             <input type='hidden' name='date' value='$date'>
             <input type='hidden' name='time' value='$time'>
             Band: <select name='band'>";
-        foreach ($band_opts as $band) {
+        foreach (BANDS_LIST as $band) {
             if (strtolower($band) === 'all') continue;
             echo "<option>$band</option>";
         }
         echo "</select> Mode: <select name='mode'>";
-        foreach ($mode_opts as $mode) {
+        foreach (MODES_LIST as $mode) {
             if (strtolower($mode) === 'all') continue;
             echo "<option>$mode</option>";
         }
         echo "</select><br>
             Club Station: <select name='club_station'><option value=''></option>";
-        foreach ($club_stations as $club) echo "<option>$club</option>";
+        foreach (CLUB_STATIONS as $club) echo "<option>$club</option>";
         echo "</select><br>
             Notes: <input type='text' name='notes' size='40'><br>
             <input type='hidden' name='call' value='$logged_in_call'>

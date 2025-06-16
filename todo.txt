@@ -3,8 +3,11 @@ Scheduler todos
 Bugs:
 
 todo:
-initialize tables and clone not working yet
-cleanup files in repo but no longer in use
+when using slot_edit to change an existing entry, change of club station doesn't stick
+when using slot_edit to change an existing entry, should check that band/mode is not already in that slot (like with add)
+when using slot_edit to change an existing entry, pop-up window should go away after save
+admin priv needed for admin
+cleanup files in github repo but no longer in use
 get rid of "all" in the various lists??
 in table view, change delete to a dropdown list edit/delete
 update instructions in "how do I use this"
@@ -21,6 +24,8 @@ handle enter key to show just my schedule, or maybe just log in
 admin screen, admin users
 
 Done:
+edit slot from grid view - band/mode dropdowns don't work, club station s/b dropdown
+event_admin: initialize tables and clone from existing
 in resulting schedule table day of week is correct but dates are all the same, ending date
 move time_opts and day_opts to config.php
 selecting all doesn't work
