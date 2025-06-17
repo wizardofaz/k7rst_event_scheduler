@@ -27,7 +27,7 @@ table.coverage-grid td.blank-cell {
   left: 50%;
   transform: translateX(-50%);
   width: 95%;
-  max-width: 600px;
+  max-width: 900px;
   overflow-x: auto;
   word-wrap: break-word;
   background: white;
@@ -88,3 +88,22 @@ table.coverage-grid td.blank-cell {
 #popup-close:hover {
   color: #000;
 }
+
+.slot-edit-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.slot-edit-table th,
+.slot-edit-table td {
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.slot-edit-table col.call     { width: 10%; }
+.slot-edit-table col.name     { width: 10%; }
+.slot-edit-table col.band     { width: 10%; }
+.slot-edit-table col.mode     { width: 10%; }
+.slot-edit-table col.station  { width: 20%; }
+.slot-edit-table col.notes    { width: 30%; }
+.slot-edit-table col.action   { width: 10%; }

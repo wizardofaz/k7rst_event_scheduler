@@ -18,14 +18,23 @@ if (!$date || !$time) {
 $result = db_get_schedule_for_date_time($conn, $date, $time);
 $entries = [];
 if ($result) while ($row = $result->fetch_assoc()) $entries[] = $row;
-
 echo "<h3>Scheduled for $date at $time</h3>";
 
 $current_call_is_scheduled = false;
 if (count($entries) === 0) {
     echo "<p>No operators scheduled.</p>";
 } else {
-    echo "<table border='1' cellpadding='4'><tr><th>Call</th><th>Name</th><th>Band</th><th>Mode</th><th>Club Station</th><th>Notes</th>";
+    echo "<table class='slot-edit-table' border='1' cellpadding='4'>";
+    echo '<colgroup>
+        <col class="call">
+        <col class="name">
+        <col class="band">
+        <col class="mode">
+        <col class="station">
+        <col class="notes">
+        <col class="action">
+      </colgroup>';
+    echo "<tr><th>Call</th><th>Name</th><th>Band</th><th>Mode</th><th>Club Station</th><th>Notes</th>";
     if ($logged_in_call !== '') echo "<th>Action</th>";
     echo "</tr>";
     foreach ($entries as $entry) {

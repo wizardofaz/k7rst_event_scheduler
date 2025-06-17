@@ -24,6 +24,7 @@ handle enter key to show just my schedule, or maybe just log in
 admin screen, admin users
 
 Done:
+slot_edit table needs to have wider columns for club station and notes
 edit slot from grid view - band/mode dropdowns don't work, club station s/b dropdown
 event_admin: initialize tables and clone from existing
 in resulting schedule table day of week is correct but dates are all the same, ending date
