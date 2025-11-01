@@ -1,8 +1,8 @@
 <?php
 // master.php — helpers for querying the master database to resolve event DB connection info
-require_once 'config.php'; // config.php pulls in secrets.php
-require_once 'logging.php';
-require_once 'event_db.php';
+require_once __DIR__ . '/config.php'; // config.php pulls in secrets.php
+require_once __DIR__ . '/logging.php';
+require_once __DIR__ . '/event_db.php';
 
 function connect_to_master() {
     $conn = new mysqli(MASTER_SERVER, MASTER_USER, MASTER_PASSWORD, MASTER_DB);
@@ -41,7 +41,7 @@ function list_events_from_master_with_status() {
         return [];
     }
 
-    $result = $conn->query("SELECT event_name FROM events ORDER BY event_name");
+    $result = $conn->query("SELECT event_name, description FROM events ORDER BY event_name");
     if (!$result) {
         log_msg(DEBUG_ERROR, "Query failed in list_events_from_master_with_status: " . $conn->error);
         $conn->close();
@@ -51,6 +51,7 @@ function list_events_from_master_with_status() {
     $events = [];
     while ($row = $result->fetch_assoc()) {
         $event_name = $row['event_name'];
+        $event_description = $row['description'];
         $info = get_event_connection_info_from_master($event_name);
         if (!$info) {
             $status = 'EVENT_NOT_EXIST';
@@ -61,7 +62,8 @@ function list_events_from_master_with_status() {
         }
         $events[] = [
             'event_name' => $event_name,
-            'status' => $status
+            'event_description' => ($event_description ?? ''),
+            'status' => ($status ?? 'UNKNOWN')
         ];
     }
 

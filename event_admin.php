@@ -1,9 +1,9 @@
 <?php
 // event_admin.php
 
-require_once 'config.php';
-require_once 'event_db.php';
-require_once 'logging.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/event_db.php';
+require_once __DIR__ . '/logging.php';
 
 $valid_events = list_events_from_master_with_status();
 $empty_events = [];
@@ -20,7 +20,6 @@ foreach ($valid_events as $i => $event) {
         $not_valid_events[] = $event;
         unset($valid_events[$i]);
     }
-
 }
 
 $config_data = [];
@@ -60,6 +59,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['target_event']) && !i
                 $conn->close();
             }
         }
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST'
+    && isset($_POST['event_description'], $_POST['save_event_description'], $_POST['edit_event_description'])) {
+
+    $target_event = $_POST['edit_event_description'];
+    $desc = trim((string)$_POST['event_description']);
+
+    log_msg(DEBUG_INFO, "Description update triggered for event " . $target_event . ": " . $desc);
+
+    $conn = connect_to_master();
+    if (!$conn || $conn->connect_error) {
+        $config_message = "❌ Failed to connect to master db";
+        log_msg(DEBUG_ERROR, $config_message);
+    } else {
+        if ($desc === '') {
+            // Empty → store NULL
+            $stmt = $conn->prepare("UPDATE events SET description = NULL WHERE event_name = ?");
+            if ($stmt === false) {
+                $config_message = "❌ Prepare failed: " . $conn->error;
+                log_msg(DEBUG_ERROR, $config_message);
+            } else {
+                $stmt->bind_param("s", $target_event);
+                if (!$stmt->execute()) {
+                    $config_message = "❌ Execute failed: " . $stmt->error;
+                    log_msg(DEBUG_ERROR, $config_message);
+                } else {
+                    $stmt->close();
+                    // PRG
+                    header("Location: " . $_SERVER['PHP_SELF'] . "?config_event=" . urlencode($target_event));
+                    log_msg(DEBUG_INFO, "blank event description stored");
+                    exit;
+                }
+                $stmt->close();
+            }
+        } else {
+            // Enforce 512-char cap
+            if (mb_strlen($desc) > 512) {
+                $desc = mb_substr($desc, 0, 512);
+            }
+            $stmt = $conn->prepare("UPDATE events SET description = ? WHERE event_name = ?");
+            if ($stmt === false) {
+                $config_message = "❌ Prepare failed: " . $conn->error;
+                log_msg(DEBUG_ERROR, $config_message);
+            } else {
+                $stmt->bind_param("ss", $desc, $target_event);
+                if (!$stmt->execute()) {
+                    $config_message = "❌ Execute failed: " . $stmt->error;
+                    log_msg(DEBUG_ERROR, $config_message);
+                } else {
+                    $stmt->close();
+                    // PRG
+                    header("Location: " . $_SERVER['PHP_SELF'] . "?config_event=" . urlencode($target_event));
+                    log_msg(DEBUG_INFO, "New description for " . $target_event . ": " . $desc);
+                    exit;
+                }
+                $stmt->close();
+            }
+        }
+        // $conn->close(); // optional; connection will close at script end
     }
 }
 
@@ -256,11 +316,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['config_event'])) {
                 </option>
             <?php endforeach; ?>
         </select>
-    </form>
-    <br>
-    <?php if (!isset($_GET['config_event']) || $_GET['config_event'] === ''): ?>
-        <p><em>Select an event above to view or edit its configuration.</em></p>
-    <?php else: ?>
+        </form>
+        <br>
+        <?php if (!isset($_GET['config_event']) || $_GET['config_event'] === ''): ?>
+            <p><em>Select an event above to view or edit its configuration.</em></p>
+        <?php else: ?>
+        <!-- ===== Event Description (inline editor) ===== -->
+        <div style="max-width:980px;border:1px solid #ccc;border-radius:8px;padding:12px;margin:10px 0;">
+        <h2 style="margin:0 0 6px;">Event Description</h2>
+        <p style="margin:4px 0;color:#666;">Short blurb shown on the front page/event picker (max 512 characters). Leave blank to hide.</p>
+        <?php if (!empty($__flash_msg)): ?>
+            <p style="margin:6px 0;color:#0a7a0a;font-weight:600;"><?php echo htmlspecialchars($__flash_msg); ?></p>
+        <?php endif; ?>
+        <form method="post" style="margin:0;">
+            <input type="hidden" name="edit_event_description" value="<?php echo htmlspecialchars($_GET['config_event'] ?? ''); ?>">
+            <textarea name="event_description" rows="3" maxlength="512" style="width:100%;"><?php
+                $by_name = array_column($valid_events, 'event_description', 'event_name');
+                echo htmlspecialchars($by_name[$_GET['config_event']]);
+            ?></textarea>
+            <div style="margin-top:8px;">
+            <button type="submit" name="save_event_description" value="1">Save Description</button>
+            </div>
+        </form>
+        </div>
+        <!-- ============================================ -->
         <form method="post">
             <input type="hidden" name="config_event" value="<?= htmlspecialchars($_GET['config_event'] ?? '') ?>">
             <table id="config-table" border="1" style="width:100%">

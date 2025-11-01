@@ -1,10 +1,10 @@
 <?php
 // delete_entry.php
 
-require_once 'config.php';
-require_once 'db.php';
-require_once 'login.php';
-require_once 'logging.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/login.php';
+require_once __DIR__ . '/logging.php';
 
 $conn = get_event_db_connection_from_master(EVENT_NAME);
 

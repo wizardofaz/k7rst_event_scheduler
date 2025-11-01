@@ -1,5 +1,4 @@
 <?php
-require_once 'config.php';
 
 define('DEBUG_ERROR', 0);
 define('DEBUG_WARNING', 1);
@@ -30,7 +29,8 @@ function log_msg($level,$message) {
 
     if ($_SESSION['debug_level'] >= $level) {
         $bt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
-        $caller = $bt[1] ?? $bt[0]; // [1] = caller of log_msg, [0] = log_msg itself
+        //$caller = $bt[1] ?? $bt[0]; // [1] = caller of log_msg, [0] = log_msg itself
+        $caller = $bt[0]; // [1] = caller of log_msg, [0] = log_msg itself
 
         $file = basename($caller['file'] ?? 'unknown');
         $line = $caller['line'] ?? '?';

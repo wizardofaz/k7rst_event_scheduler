@@ -8,7 +8,7 @@
 // }
 
 // Database connection
-require_once 'config.php'; // Assuming config.php holds the DB connection details
+require_once __DIR__ . '/config.php'; // Assuming config.php holds the DB connection details
 $conn = get_event_db_connection_from_master(EVENT_NAME);
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 

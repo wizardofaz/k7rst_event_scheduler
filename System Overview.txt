@@ -89,6 +89,8 @@ band, mode
 
 club_station (nullable)
 
+assigned_call (nullable)
+
 notes (nullable)
 
 operator_passwords Table

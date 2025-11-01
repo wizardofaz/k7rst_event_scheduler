@@ -100,10 +100,11 @@ table.coverage-grid td.blank-cell {
   text-align: left;
 }
 
-.slot-edit-table col.call     { width: 10%; }
-.slot-edit-table col.name     { width: 10%; }
-.slot-edit-table col.band     { width: 10%; }
-.slot-edit-table col.mode     { width: 10%; }
+.slot-edit-table col.call     { width: 8%; }
+.slot-edit-table col.name     { width: 8%; }
+.slot-edit-table col.band     { width: 8%; }
+.slot-edit-table col.mode     { width: 8%; }
+.slot-edit-table col.assigned-call { width: 8%}
 .slot-edit-table col.station  { width: 20%; }
 .slot-edit-table col.notes    { width: 30%; }
 .slot-edit-table col.action   { width: 10%; }

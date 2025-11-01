@@ -1,8 +1,21 @@
 Scheduler todos
 
 Bugs:
+when switch events, user remains logged in
+when log out index page doesn't do the event selected unless you change it
 
 todo:
+move login to index.php, require login with pw.
+add event_admin.php link to index for authorized users
+Test scheduler for WFD
+Login from index page
+Add event admin to index page for authorized users
+Event start not at 0000?
+set debug level in event config db??
+add public search to each club station in wavelog
+use event_display_name in sheduler consisten with visulizer
+add notes column to event config to offer choices etc
+in visualizer hover over a cell shows only one entry
 when using slot_edit to change an existing entry, change of club station doesn't stick
 when using slot_edit to change an existing entry, should check that band/mode is not already in that slot (like with add)
 when using slot_edit to change an existing entry, pop-up window should go away after save
@@ -24,6 +37,10 @@ handle enter key to show just my schedule, or maybe just log in
 admin screen, admin users
 
 Done:
+Test slot full 
+Flag for club station required (support for field day) 
+Flag for “EVENT_CALLSIGNS_REQUIRED” (all one call except GOTA) (supports field day)
+use require_once __DIR__ . '/config.php'; everywhere
 slot_edit table needs to have wider columns for club station and notes
 edit slot from grid view - band/mode dropdowns don't work, club station s/b dropdown
 event_admin: initialize tables and clone from existing

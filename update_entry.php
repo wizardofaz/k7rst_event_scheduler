@@ -1,9 +1,9 @@
 <?php
 // update_entry.php
 
-require_once 'config.php';
-require_once 'db.php';
-require_once 'logging.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/logging.php';
 
 $logged_in_call = $_SESSION['logged_in_call'] ?? '';
 if (!$logged_in_call) {

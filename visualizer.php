@@ -1,10 +1,11 @@
 <?php
 // visualizer.php
 
-require_once 'config.php';
-require_once 'logging.php';
-require_once 'db.php';
-require_once 'login.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/logging.php';
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/login.php';
+require_once __DIR__ . '/assigned_call.php';
 
 $conn = get_event_db_connection_from_master(EVENT_NAME);
 
@@ -17,6 +18,8 @@ if (isset($_POST['logout'])) {
     unset($_SESSION['authenticated_users']);
     unset($_SESSION['logged_in_call']);
     $op_call = '';
+    logout();
+    exit;
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $op_call) {
     $authorized = login($conn, $op_call, $op_name, $op_pw);
@@ -66,7 +69,7 @@ function score_to_color($norm) {
 }
 
 // --- HTML output ---
-echo "<html><head><title>" . htmlspecialchars(EVENT_DISPLAY_NAME) . "(" . htmlspecialchars(EVENT_NAME) . ") Visualizer</title>
+echo "<html><head><title>" . htmlspecialchars(EVENT_DISPLAY_NAME) . " (" . htmlspecialchars(EVENT_NAME) . ") Visualizer</title>
     <link rel=\"icon\" href=\"img/cropped-RST-Logo-1-32x32.jpg\">
     <link rel=\"stylesheet\" href=\"visualizer.css\">
 <script>
@@ -106,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
 echo "<img src=\"img/RST-header-768x144.jpg\" alt=\"Radio Society of Tucson K7RST\" "
 	. "title=\"<?= htmlspecialchars(EVENT_NAME . \" scheduler, version \" . APP_VERSION) ?>\" />";
 
-echo "<h2>" . htmlspecialchars(EVENT_DISPLAY_NAME) . "(" . htmlspecialchars(EVENT_NAME) . ") Schedule Visualizer <a href=\"scheduler.php\">(Switch to tabular view)</a></h2>";
+echo "<h2>" . htmlspecialchars(EVENT_DISPLAY_NAME) . " (" . htmlspecialchars(EVENT_NAME) . ") Schedule Visualizer <a href=\"scheduler.php\">(Switch to tabular view)</a></h2>";
 
 if ($authorized) {
     echo "<form method='post' style='display:inline;'>

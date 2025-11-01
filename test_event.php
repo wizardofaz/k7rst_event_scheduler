@@ -1,9 +1,9 @@
 <?php
 // test_event.php — basic test to verify dynamic config loading
 
-require_once 'config.php';
-require_once 'master.php';
-require_once 'event_db.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/master.php';
+require_once __DIR__ . '/event_db.php';
 ?>
 <!DOCTYPE html>
 <html>

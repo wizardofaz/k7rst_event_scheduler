@@ -1,9 +1,10 @@
 <?php
 // add_entry.php
 
-require_once 'config.php';
-require_once 'db.php';
-require_once 'login.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/login.php';
+require_once __DIR__ . '/assigned_call.php';
 
 $conn = get_event_db_connection_from_master(EVENT_NAME);
 
@@ -44,6 +45,20 @@ if ($club && db_check_club_station_in_use($conn, $date, $time, $club)) {
     exit;
 }
 
-db_add_schedule_line($conn, $date, $time, $op_call, $op_name, $band, $mode, $club, $notes);
+if(EVENT_CALLSIGNS_REQUIRED) {
+    $assigned_call = choose_assigned_call($date, $time, $op_call, $band, $mode);
+    if ($assigned_call === null) {
+        // all calls are in use in this slot, must reject
+        $_SESSION['slot_full_flash'] = true;
+        log_msg(DEBUG_INFO, "No callsign available for {$date} {$time} (slot full).");
+    } else {
+        log_msg(DEBUG_VERBOSE, "assigned_call is {$assigned_call} for {$date} {$time} {$op_call}.");
+    }
+} else {
+    $assigned_call = null;
+}
+
+
+db_add_schedule_line($conn, $date, $time, $assigned_call, $op_call, $op_name, $band, $mode, $club, $notes);
 echo "OK";
 ?>

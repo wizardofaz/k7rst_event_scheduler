@@ -1,7 +1,7 @@
 <?php
-require_once 'config.php';
-require_once 'logging.php';
-require_once 'db.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/logging.php';
+require_once __DIR__ . '/db.php';
 
 function login($db_conn, $op_call, $op_name, $op_pw) {
 
@@ -75,4 +75,34 @@ function login($db_conn, $op_call, $op_name, $op_pw) {
     
     return $authorized;
 
+}
+
+function logout() {
+    session_start();
+
+    // Clear all session data
+    $_SESSION = [];
+
+    // Delete the session cookie
+    if (ini_get('session.use_cookies')) {
+        $p = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
+    }
+
+    // Destroy and rotate
+    session_destroy();
+    session_regenerate_id(true);
+
+    // Build redirect to the current directory (so it hits index.php)
+    $https  = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    $scheme = $https ? 'https' : 'http';
+    $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
+    $uri    = $_SERVER['REQUEST_URI'] ?? '/';
+    $path   = parse_url($uri, PHP_URL_PATH) ?? '/';
+    $dir    = rtrim(dirname($path), '/\\');      // directory of the current script
+    $dest   = $scheme . '://' . $host . ($dir === '' ? '/' : $dir . '/');
+
+    header('Location: ' . $dest, true, 302);
+    exit;
 }

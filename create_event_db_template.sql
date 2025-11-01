@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS schedule (
     band VARCHAR(10) NOT NULL,
     mode VARCHAR(10) NOT NULL,
     club_station VARCHAR(50) DEFAULT '',
+    assigned_call VARCHAR(20) DEFAULT '',
     notes VARCHAR(200) DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY unique_operator_per_hour (date, time, op_call)

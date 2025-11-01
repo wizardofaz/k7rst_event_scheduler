@@ -1,6 +1,6 @@
 <?php
-require_once 'config.php';
-require_once 'logging.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/logging.php';
 
 log_msg(DEBUG_INFO, "expand_day.php");
 
@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Redirect back to the same day page
         header("Location: expand_day.php?date=" . urlencode($date));
-        exit();
+        exit;
     }
 
     // Handle deleting a scheduled slot
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Redirect back to the same day page
         header("Location: expand_day.php?date=" . urlencode($date));
-        exit();
+        exit;
     }
 }
 ?>

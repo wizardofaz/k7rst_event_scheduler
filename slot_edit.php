@@ -1,9 +1,10 @@
 <?php
 // slot_edit.php
 
-require_once 'config.php';
-require_once 'db.php';
-require_once 'logging.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/logging.php';
+require_once __DIR__ . '/assigned_call.php';
 
 $conn = get_event_db_connection_from_master(EVENT_NAME);
 $date = $_GET['date'] ?? '';
@@ -30,11 +31,12 @@ if (count($entries) === 0) {
         <col class="name">
         <col class="band">
         <col class="mode">
+        <col class="assigned-call">
         <col class="station">
         <col class="notes">
         <col class="action">
       </colgroup>';
-    echo "<tr><th>Call</th><th>Name</th><th>Band</th><th>Mode</th><th>Club Station</th><th>Notes</th>";
+    echo "<tr><th>Call</th><th>Name</th><th>Band</th><th>Mode</th><th>Assigned</th><th>Club Station</th><th>Notes</th>";
     if ($logged_in_call !== '') echo "<th>Action</th>";
     echo "</tr>";
     foreach ($entries as $entry) {
@@ -64,6 +66,9 @@ if (count($entries) === 0) {
                 echo "<option value='$mode' $selected>$mode</option>";
             }
             echo "</select></td>";
+            // Assigned call is computed, not user input
+            $assigned_call = choose_assigned_call($date, $time, $logged_in_call, $band, $mode);
+            echo "<td>{$assigned_call}</td>";
             // Club Station dropdown
             echo "<td><select name='club_station' form='form-{$entry['club_station']}{$entry['club_station']}'>";
             foreach (CLUB_STATIONS as $club_station) {
@@ -84,6 +89,7 @@ if (count($entries) === 0) {
                     <input type='hidden' name='time' value='$time'>
                     <input type='hidden' name='band' value='{$entry['band']}'>
                     <input type='hidden' name='mode' value='{$entry['mode']}'>
+                    <input type='hidden' name='assigned_call' value='{$assigned_call}'>
                     <input type='hidden' name='call' value='{$entry['op_call']}'>
                     <button type='submit'>Delete</button>
                 </form>
@@ -91,6 +97,7 @@ if (count($entries) === 0) {
         } else {
             echo "<td>{$entry['band']}</td>
                 <td>{$entry['mode']}</td>
+                <td>{$entry['assigned_call']}</td>
                 <td>{$entry['club_station']}</td>
                 <td>{$entry['notes']}</td>";
             if ($logged_in_call !== '') echo "<td></td>";

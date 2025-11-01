@@ -1,21 +1,14 @@
 <?php
-require_once 'config.php';
-require_once 'logging.php';
-require_once 'db.php';
-require_once 'login.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/logging.php';
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/login.php';
+require_once __DIR__ . '/assigned_call.php';
 
 log_msg(DEBUG_VERBOSE, "Session start - Current session data: " . json_encode($_SESSION));
 
 if (isset($_GET['logout'])) {
-
-    // Destroy the session and clear session variables
-    session_destroy();
-
-    log_msg(DEBUG_INFO, "Logout, session destroyed. POST was: " . json_encode($_POST));
-
-    // Redirect to the same page without the query string (removing ?logout)
-    header("Location: " . strtok($_SERVER["REQUEST_URI"], '?'));
-
+	logout();
     exit; // Stop further script execution
 }
 
@@ -95,27 +88,36 @@ $table_rows = [];
 
 $club_station_conflict = 0;
 $band_mode_conflict = 0;
+$required_club_station_missing = 0;
 
 // build the table to be displayed, optionally with add/delete buttons (if authorized)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authentication) ) {
     if (isset($_POST['add_selected']) && isset($_POST['slots'])) {
 		log_msg(DEBUG_INFO, "processing schedule add:");
         foreach ($_POST['slots'] as $slot) {
+			$assigned_call = null;
             list($date, $time) = explode('|', $slot);
+			// $assigned_call = $_POST['assigned_call'][$slot] ?? ''; // assigned call is not an input field
 			$band = $_POST['band'][$slot] ?? null;
 			$mode = $_POST['mode'][$slot] ?? null;
             $club_station = $_POST['club_station'][$slot] ?? '';
             $notes = $_POST['notes'][$slot] ?? '';
 			log_msg(DEBUG_INFO, "\tadd info: date=" . $date . ", time=" . $time . ", call=" . $op_call_input . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
-
             // Check club station conflict: more than one op in given date/time/club_station
             if (!empty($club_station)) {
 				$club_station_conflict_check = db_check_club_station_in_use($db_conn, $date, $time, $club_station);
                 if ($club_station_conflict_check) {
                     $club_station_conflict += 1;
+					$_SESSION['club_station_conflict_flash'] = true;
 					log_msg(DEBUG_INFO, "club_station_conflict: date=" . $date . ", time=" . $time . ", call=" . $op_call_input . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
                 }
             }
+			// For some events (e.g. Field Day) "club_station" selection is required
+			if (empty($club_station) && CLUB_STATION_REQUIRED) {
+				$_SESSION['required_club_station_missing_flash'] = true;
+				log_msg(DEBUG_INFO, "required_club_station_missing: date=" . $date . ", time=" . $time . ", call=" . $op_call_input . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
+				$required_club_station_missing += 1;
+			}
 
             // Check band/mode conflict: more than one op in given date/time/band/mode
             $band_mode_conflict_check = db_check_band_mode_conflict($db_conn, $date, $time, $band, $mode);
@@ -124,10 +126,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 				$_SESSION['band_mode_conflict_flash'] = true;
 				log_msg(DEBUG_INFO, "band_mode_conflict: date=" . $date . ", time=" . $time . ", call=" . $op_call_input . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
 			}
-			
-			if (!$band_mode_conflict && !$club_station_conflict) {
-				db_add_schedule_line($db_conn, $date, $time, $op_call_input, $op_name_input, $band, $mode, $club_station, $notes);
-            }
+
+			if(EVENT_CALLSIGNS_REQUIRED) {
+				$assigned_call = choose_assigned_call($date, $time, $op_call_input, $band, $mode);
+			    if ($assigned_call === null) {
+					// all calls are in use in this slot, must reject
+					$_SESSION['slot_full_flash'] = true;
+					log_msg(DEBUG_INFO, "No callsign available for {$date} {$time} (slot full).");
+				} else {
+					log_msg(DEBUG_VERBOSE, "assigned_call is {$assigned_call} for {$date} {$time} {$op_call_input}.");
+				}
+			}
+
+			//TODO unclear why this is based on conflict count rather than just a flag for this row
+			if ((!EVENT_CALLSIGNS_REQUIRED || $assigned_call) && !$band_mode_conflict && !$club_station_conflict && !$required_club_station_missing) {
+				db_add_schedule_line($db_conn, $date, $time, $assigned_call, $op_call_input, $op_name_input, $band, $mode, $club_station, $notes);
+			}
         }
 
 		// trigger the display of the schedule asif the most recently used show button
@@ -202,6 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 					$op = $row ? strtoupper($row['op_call']) : null;
 					if($op === $op_call_input) $none_are_me = false;
 					$name = $row ? $row['op_name'] : null;
+					$assigned_call = $row['assigned_call'] ?? '';
 					$band = $row ? $row['band'] : null;
 					$mode = $row ? $row['mode'] : null;
 					$club_station = $row['club_station'] ?? '';
@@ -211,13 +226,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 					// skip lines for other ops when showing only mine
 					if (($mine_only || $mine_plus_open) && $op !== $op_call_input) continue;
 					// gather what's left to be displayed in the table
-					$table_rows[] = compact('date', 'time', 'band', 'mode', 'op', 'name', 'club_station', 'notes');
+					$table_rows[] = compact('date', 'time', 'assigned_call', 'band', 'mode', 'op', 'name', 'club_station', 'notes');
 				}
 				// add an unscheduled row if current call is not scheduled in this slot
 				// because we can schedule multiple ops in one slot (other mode and/or other special event callsign)
 				if (($complete_calendar || $mine_plus_open) && $none_are_me) {
-					$band = $mode = $op = $name = $club_station = $notes = null;
-					$table_rows[] = compact('date', 'time', 'band', 'mode', 'op', 'name', 'club_station', 'notes');
+					$assigned_call = $band = $mode = $op = $name = $club_station = $notes = null;
+					$table_rows[] = compact('date', 'time', 'assigned_call', 'band', 'mode', 'op', 'name', 'club_station', 'notes');
 				}
             }
         }
@@ -299,11 +314,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
     </div>
 <?php unset($_SESSION['club_station_conflict_flash']); endif; ?>
 
+<?php if (!empty($_SESSION['required_club_station_missing_flash'])): ?>
+    <div id="required-club-station-missing-flash" style="
+	    background-color: #f8d7da;
+    	color: #721c24;
+    	padding: 10px;
+    	border: 1px solid #f5c6cb;
+    	margin-bottom: 1em;
+    	border-radius: 4px;
+    	max-width: 600px;">        
+		❌ Required club station missing: club station selection is required on schedule additions.
+    </div>
+<?php unset($_SESSION['required_club_station_missing_flash']); endif; ?>
+
+<?php if (!empty($_SESSION['slot_full_flash'])): ?>
+    <div id="slot-full-flash" style="
+	    background-color: #f8d7da;
+    	color: #721c24;
+    	padding: 10px;
+    	border: 1px solid #f5c6cb;
+    	margin-bottom: 1em;
+    	border-radius: 4px;
+    	max-width: 600px;">        
+		❌ Slot full: all event callsigns are in use for this time slot.
+    </div>
+<?php unset($_SESSION['slot_full_flash']); endif; ?>
+
 <form method="POST">
     <div class="section">
 		<?php if ($authorized): ?>
 			<strong><?= htmlspecialchars($op_call_input) ?></strong> is logged in.
- 			<a href="?logout=1" class="logout-button">Log Out</a>
+ 			<a href="?logout=1&event=<?= EVENT_NAME ?>" class="logout-button">Log Out</a>
 		<?php else: ?>
 			<div class="login-row">
 				<label for="op_call"><strong>Callsign:</strong></label>
@@ -436,7 +477,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 
 	<!-- See JavaScript handlers at the bottom for how enter key is handled -->
 	<div class="section">
-    	<strong>Use one of the buttons below to choose what to show, filtered by selections above:</strong><br><br>
+    	<strong>Use one of these buttons to choose what to show, filtered by selections above. Then click the checkbox on each row you want to add to or delete from your schedule, and scroll to the bottom to click what action to be taken on selected rows.</strong><br><br>
     	<input type="hidden" name="enter_pressed" value="Enter Pressed">
     	<div class="button-container">
         	<input type="submit" name="complete_calendar" value="Show Complete Calendar (scheduled and open)">
@@ -451,7 +492,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 
 	<table border="1" cellpadding="5">
 		<tr>
-			<th>Select</th><th>Date</th><th>Time</th><th>Band</th><th>Mode</th>
+			<th>Select</th><th>Date</th><th>Time</th><th>Assigned Call</th><th>Band</th><th>Mode</th>
 			<th>Club Station</th><th>Notes</th><th>Status</th>
 		</tr>
 		<?php 
@@ -463,6 +504,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 		foreach ($table_rows as $r):
 			$date = $r['date'];
 			$time = $r['time'];
+			$assigned_call = $r["assigned_call"];
 			$op = $r['op'];
 			$name = $r['name'];
 			$band = $r['band'];
@@ -494,7 +536,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 				<?php endif; ?>
 			</td>
 			<td><?= $formatted_date ?></td>
-			<td><?= $r['time'] ?></td>
+			<td><?= $time ?></td>
+			<td><?= $assigned_call ?></td>
 			<td>
 				<?php if ($status === 'Open'): ?>
 					<!-- Dropdown for Band -->
@@ -547,7 +590,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 					<?= htmlspecialchars($r['club_station']) ?: '--' ?>
 				<?php endif; ?>
 			</td>
-
 			<td>
 				<?php if ($status === 'Open'): ?>
 					<!-- Input for Notes -->
