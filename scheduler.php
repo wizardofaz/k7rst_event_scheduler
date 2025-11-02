@@ -274,17 +274,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 
 <?php log_msg(DEBUG_INFO, 'Logged-in flash status: ' . ($_SESSION['login_flash'] ?? 'NOT SET')); ?>
 
-<?php if (!empty($_SESSION['login_flash'])): ?>
+<?php if (!empty($_SESSION['login_flash'])): 
+	switch ($_SESSION['login_flash']) {
+		case 'success':
+			$flash_colors = 'background-color: #d4edda; color: #155724;';
+			$flash_msg = "✅ Password accepted. You're now logged in. Your session will remain active for up to {$session_timeout_minutes} minutes of inactivity.";
+			break;
+		case 'new_pw':
+			$flash_colors = 'background-color: #d4edda; color: #155724;';
+			$flash_msg = "✅ New password accepted. You're now logged in. Your session will remain active for up to {$session_timeout_minutes} minutes of inactivity.";
+			break;
+		case 'fail':
+		default:
+			$flash_colors = 'background-color: #f8d7da; color: #721c24;';
+			$flash_msg = "✅ Login failed, password did not match or did not exist for {$op_call_input}";
+			break;
+	}	
+	?>
     <div id="login-flash" style="
-        background-color: #d4edda;
-        color: #155724;
+		<?= $flash_colors ?>
         padding: 10px;
         border: 1px solid #c3e6cb;
         margin-bottom: 1em;
         border-radius: 4px;
         max-width: 600px;">
-        ✅ Password accepted. You're now logged in.
-        Your session will remain active for up to <?= $session_timeout_minutes ?> minutes of inactivity.
+        <?= $flash_msg ?>
     </div>
 <?php $_SESSION['login_shown'] = true; unset($_SESSION['login_flash']); endif; ?>
 

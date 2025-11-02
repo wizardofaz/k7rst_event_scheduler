@@ -11,7 +11,9 @@ function login($db_conn, $op_call, $op_name, $op_pw) {
     // $_SESSION['authenticated_users'][$call]: table of users already authenticated in this session
     // $_SESSION['logged_in_call']: call of currently logged in user
     // $_SESSION['logged_in_name']: name of currently logged in user
-    // $_SESSION['login_flash']: when set true will trigger a short "logged in" message 
+    // $_SESSION['login_flash']: when set to "success" will trigger a short "logged in" message 
+    // $_SESSION['login_flash']: when set to "new_pw" will trigger a short "logged in" message 
+    // $_SESSION['login_flash']: when set to "fail" will trigger a short "login failed" message 
     // $authorized: current user is authorized 
 
     if (!isset($_SESSION['authenticated_users'])) {
@@ -43,7 +45,7 @@ function login($db_conn, $op_call, $op_name, $op_pw) {
                 $_SESSION['authenticated_users'][$op_call] = true;
                 $_SESSION['logged_in_call'] = $op_call;
                 $_SESSION['logged_in_name'] = $op_name;
-                $_SESSION['login_flash'] = true;
+                $_SESSION['login_flash'] = 'success';
                 $authorized = true;
             } elseif ($db_stored_pw === $op_pw) {
                 // input matches db
@@ -51,7 +53,7 @@ function login($db_conn, $op_call, $op_name, $op_pw) {
                 $_SESSION['authenticated_users'][$op_call] = true;
                 $_SESSION['logged_in_call'] = $op_call;
                 $_SESSION['logged_in_name'] = $op_name;
-                $_SESSION['login_flash'] = true;
+                $_SESSION['login_flash'] = 'success';
                 $authorized = true;
             } elseif (!$db_stored_pw && $op_pw) {
                 // there is an input pw but no db pw: he gets logged in now and password gets stored
@@ -60,13 +62,14 @@ function login($db_conn, $op_call, $op_name, $op_pw) {
                 $_SESSION['authenticated_users'][$op_call] = true;
                 $_SESSION['logged_in_call'] = $op_call;
                 $_SESSION['logged_in_name'] = $op_name;
-                $_SESSION['login_flash'] = true;
+                $_SESSION['login_flash'] = 'new_pw';
                 $authorized = true;
             } else {	
                 log_msg(DEBUG_ERROR, "PW: db password does not match input for $op_call, login failed"); 
                 unset($_SESSION['authenticated_users'][$op_call]);
                 unset($_SESSION['logged_in_call']);
                 unset($_SESSION['logged_in_name']);
+                $_SESSION['login_flash'] = 'fail';
                 $authorized = false;
             }
 

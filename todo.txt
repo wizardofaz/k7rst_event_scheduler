@@ -6,7 +6,9 @@ when switch events, user remains logged in
 when log out index page doesn't do the event selected unless you change it
 
 todo:
-move login to index.php, require login with pw.
+move login to index.php, require login with pw (no more un-authenticated users)
+add admin mode as option on index.php (coupled with adding login option)
+add browse-only on sheduler without login
 add event_admin.php link to index for authorized users
 Test scheduler for WFD
 Login from index page
