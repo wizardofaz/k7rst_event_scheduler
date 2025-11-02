@@ -1,6 +1,7 @@
 Scheduler todos
 
 Bugs:
+no error is given for wrong password
 when switch events, user remains logged in
 when log out index page doesn't do the event selected unless you change it
 

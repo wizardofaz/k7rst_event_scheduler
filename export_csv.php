@@ -11,7 +11,7 @@ header('Content-Type: text/csv');
 header('Content-Disposition: attachment; filename="schedule_export.csv"');
 
 $output = fopen('php://output', 'w');
-fputcsv($output, ['date', 'time', 'band', 'mode', 'status']);
+fputcsv($output, ['date', 'time', 'band', 'mode', 'assigned call', 'op', 'name','club station','notes','status']);
 
 foreach ($table_data as $row) {
     fputcsv($output, [
@@ -19,6 +19,7 @@ foreach ($table_data as $row) {
         $row['time'],
         $row['band'],
         $row['mode'],
+        $row['assigned_call'] ?? '',
         $row['op'],
         $row['name'],
         $row['club_station'] ?? '',

@@ -104,7 +104,7 @@ if ($status != EVENT_HAS_SCHEDULE && $status != EVENT_EMPTY_SCHEDULE) {
           <?php if ($scheduler_url !== ''): ?>
             <a class="btn primary"
                href="<?php echo htmlspecialchars($scheduler_url); ?>"
-               target="_blank" rel="noopener">
+               rel="noopener">
                <?php echo 'Open ' . htmlspecialchars($selected_event) . ' Scheduler'; ?>
             </a>
           <?php else: ?>

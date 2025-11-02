@@ -59,6 +59,6 @@ if(EVENT_CALLSIGNS_REQUIRED) {
 }
 
 
-db_add_schedule_line($conn, $date, $time, $assigned_call, $op_call, $op_name, $band, $mode, $club, $notes);
+db_add_schedule_line($conn, $date, $time, $op_call, $op_name, $band, $mode, $assigned_call, $club, $notes);
 echo "OK";
 ?>

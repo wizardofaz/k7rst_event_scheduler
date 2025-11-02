@@ -140,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 
 			//TODO unclear why this is based on conflict count rather than just a flag for this row
 			if ((!EVENT_CALLSIGNS_REQUIRED || $assigned_call) && !$band_mode_conflict && !$club_station_conflict && !$required_club_station_missing) {
-				db_add_schedule_line($db_conn, $date, $time, $assigned_call, $op_call_input, $op_name_input, $band, $mode, $club_station, $notes);
+				db_add_schedule_line($db_conn, $date, $time, $op_call_input, $op_name_input, $band, $mode, $assigned_call, $club_station, $notes);
 			}
         }
 
@@ -216,9 +216,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 					$op = $row ? strtoupper($row['op_call']) : null;
 					if($op === $op_call_input) $none_are_me = false;
 					$name = $row ? $row['op_name'] : null;
-					$assigned_call = $row['assigned_call'] ?? '';
 					$band = $row ? $row['band'] : null;
 					$mode = $row ? $row['mode'] : null;
+					$assigned_call = $row['assigned_call'] ?? '';
 					$club_station = $row['club_station'] ?? '';
 					$notes = $row['notes'] ?? '';
 					// skip open slots when showing only scheduled
@@ -226,13 +226,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 					// skip lines for other ops when showing only mine
 					if (($mine_only || $mine_plus_open) && $op !== $op_call_input) continue;
 					// gather what's left to be displayed in the table
-					$table_rows[] = compact('date', 'time', 'assigned_call', 'band', 'mode', 'op', 'name', 'club_station', 'notes');
+					$table_rows[] = compact('date', 'time', 'band', 'mode', 'assigned_call', 'op', 'name', 'club_station', 'notes');
 				}
 				// add an unscheduled row if current call is not scheduled in this slot
 				// because we can schedule multiple ops in one slot (other mode and/or other special event callsign)
 				if (($complete_calendar || $mine_plus_open) && $none_are_me) {
 					$assigned_call = $band = $mode = $op = $name = $club_station = $notes = null;
-					$table_rows[] = compact('date', 'time', 'assigned_call', 'band', 'mode', 'op', 'name', 'club_station', 'notes');
+					$table_rows[] = compact('date', 'time', 'band', 'mode', 'assigned_call', 'op', 'name', 'club_station', 'notes');
 				}
             }
         }

@@ -38,12 +38,12 @@ function db_check_band_mode_conflict($conn, $date, $time, $band, $mode) {
 }
 
 function db_get_schedule_for_date_time($conn, $date, $time) {
-    return $conn->query("SELECT op_call, op_name, assigned_call, band, mode, club_station, notes FROM schedule WHERE date='$date' AND time='$time'");
+    return $conn->query("SELECT op_call, op_name, band, mode, assigned_call, club_station, notes FROM schedule WHERE date='$date' AND time='$time'");
 }
 
-function db_add_schedule_line($conn, $date, $time, $assigned_call, $call, $name, $band, $mode, $club_station, $notes) {
-    $stmt = $conn->prepare("INSERT INTO schedule (date, time, op_call, op_name, assigned_call, band, mode, club_station, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssssssss", $date, $time, $call, $name, $assigned_call, $band, $mode, $club_station, $notes);
+function db_add_schedule_line($conn, $date, $time, $call, $name, $band, $mode, $assigned_call, $club_station, $notes) {
+    $stmt = $conn->prepare("INSERT INTO schedule (date, time, op_call, op_name, band, mode, assigned_call, club_station, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssssssss", $date, $time, $call, $name, $band, $mode, $assigned_call, $club_station, $notes);
     $stmt->execute();
     $stmt->close();
 }
