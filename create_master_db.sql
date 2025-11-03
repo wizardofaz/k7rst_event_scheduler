@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS events (
   event_name      VARCHAR(100) PRIMARY KEY,  
   description     VARCHAR(512) DEFAULT NULL, 
+  developer_flag  VARCHAR(20) DEFAULT NULL,
   db_name         VARCHAR(100) NOT NULL,
   db_host         VARCHAR(100) NOT NULL,
   db_user         VARCHAR(100) NOT NULL,

@@ -35,21 +35,24 @@ function is_authorized_master_user($user, $pass) {
 }
 
 function list_events_from_master_with_status() {
+    $developer_flag = (defined('DEVELOPER_FLAG') && DEVELOPER_FLAG);
     $conn = connect_to_master();
     if ($conn->connect_error) {
         log_msg(DEBUG_ERROR, "Unable to connect to master DB to list events.");
         return [];
     }
 
-    $result = $conn->query("SELECT event_name, description FROM events ORDER BY event_name");
+    $result = $conn->query("SELECT event_name, description, developer_flag FROM events ORDER BY event_name");
     if (!$result) {
-        log_msg(DEBUG_ERROR, "Query failed in list_events_from_master_with_status: " . $conn->error);
         $conn->close();
         return [];
     }
 
     $events = [];
     while ($row = $result->fetch_assoc()) {
+        // skip over developer only rows unless in developer context
+        log_msg(DEBUG_DEBUG, "developer_flag from config: {$developer_flag}, developer_flag from db: {$row['developer_flag']}");
+        if (!$developer_flag && $row['developer_flag']) continue;
         $event_name = $row['event_name'];
         $event_description = $row['description'];
         $info = get_event_connection_info_from_master($event_name);
