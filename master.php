@@ -51,7 +51,6 @@ function list_events_from_master_with_status() {
     $events = [];
     while ($row = $result->fetch_assoc()) {
         // skip over developer only rows unless in developer context
-        log_msg(DEBUG_DEBUG, "developer_flag from config: {$developer_flag}, developer_flag from db: {$row['developer_flag']}");
         if (!$developer_flag && $row['developer_flag']) continue;
         $event_name = $row['event_name'];
         $event_description = $row['description'];

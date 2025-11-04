@@ -230,3 +230,10 @@ label {
   font-family: sans-serif;
   font-size: 10px;
 }
+
+/* ---- index page visibility helpers ---- */
+#secPassword,
+#secActions {
+  display: none;
+} 
+
