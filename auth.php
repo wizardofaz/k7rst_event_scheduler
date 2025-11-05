@@ -13,59 +13,6 @@ require_once __DIR__ . '/csrf.php';
  * - Event DB: table `operator_passwords(id PK AI, op_call UNIQUE, op_password VARCHAR(255), password_hash VARCHAR(255) NULL)`
  */
 
-function auth_start_session(): void {
-    if (session_status() !== PHP_SESSION_ACTIVE) {
-        session_set_cookie_params([
-            'secure'   => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
-            'httponly' => true,
-            'samesite' => 'Lax',
-        ]);
-        session_start();
-    }
-}
-
-function auth_master_mysqli(): mysqli {
-    $mysqli = @new mysqli(MASTER_SERVER, MASTER_USER, MASTER_PASSWORD, MASTER_DB);
-    if ($mysqli->connect_errno) {
-        http_response_code(500);
-        exit('Cannot connect to master database.');
-    }
-    $mysqli->set_charset('utf8mb4');
-    return $mysqli;
-}
-
-/** Return array with event DB creds or exit if not found */
-function auth_lookup_event_db(string $event): array {
-    $event = trim($event);
-    if ($event === '') {
-        http_response_code(400);
-        exit('Missing event.');
-    }
-    $m = auth_master_mysqli();
-    $stmt = $m->prepare('SELECT db_name, db_host, db_user, db_pass FROM events WHERE event_name = ? LIMIT 1');
-    $stmt->bind_param('s', $event);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $row = $res->fetch_assoc();
-    $stmt->close();
-    $m->close();
-    if (!$row) {
-        http_response_code(404);
-        exit('Unknown event.');
-    }
-    return $row;
-}
-
-function auth_event_mysqli(string $event): mysqli {
-    $ev = auth_lookup_event_db($event);
-    $mysqli = @new mysqli($ev['db_host'], $ev['db_user'], $ev['db_pass'], $ev['db_name']);
-    if ($mysqli->connect_errno) {
-        http_response_code(500);
-        exit('Cannot connect to event database.');
-    }
-    $mysqli->set_charset('utf8mb4');
-    return $mysqli;
-}
 
 function auth_norm_call(string $call): string {
     return strtoupper(trim($call));
@@ -86,12 +33,13 @@ function auth_status_for_callsign(string $event, string $callsign): string {
 
 /** Browse-only; sets session */
 function auth_set_browse(string $event, string $callsign, string $name): void {
-    auth_start_session();
+    csrf_start_session_if_needed();
     $_SESSION['cactus_auth'] = [
         'event'    => trim($event),
         'callsign' => auth_norm_call($callsign),
         'name'     => trim($name),
         'role'     => 'browse',
+        'is_admin' => 0,
         'since'    => gmdate('c'),
     ];
 }
@@ -134,12 +82,13 @@ function auth_login_or_create(string $event, string $callsign, string $name, str
         }
         if (!$ok) { $db->close(); return false; }
 
-        auth_start_session();
+        csrf_start_session_if_needed();
         $_SESSION['cactus_auth'] = [
             'event'    => trim($event),
             'callsign' => $call,
             'name'     => $name,
             'role'     => 'auth',
+            'is_admin' => 0,
             'since'    => gmdate('c'),
         ];
         $db->close();
@@ -157,12 +106,13 @@ function auth_login_or_create(string $event, string $callsign, string $name, str
         }
         $stmt->close();
 
-        auth_start_session();
+        csrf_start_session_if_needed();
         $_SESSION['cactus_auth'] = [
             'event'    => trim($event),
             'callsign' => $call,
             'name'     => $name,
             'role'     => 'auth',
+            'is_admin' => 0,
             'since'    => gmdate('c'),
         ];
         $db->close();
@@ -171,19 +121,19 @@ function auth_login_or_create(string $event, string $callsign, string $name, str
 }
 
 function auth_is_authenticated(): bool {
-    auth_start_session();
+    csrf_start_session_if_needed();
     return isset($_SESSION['cactus_auth']) && ($_SESSION['cactus_auth']['role'] ?? null) === 'auth';
 }
 function auth_is_browse_only(): bool {
-    auth_start_session();
+    csrf_start_session_if_needed();
     return isset($_SESSION['cactus_auth']) && ($_SESSION['cactus_auth']['role'] ?? null) === 'browse';
 }
 function auth_get_identity(): array {
-    auth_start_session();
+    csrf_start_session_if_needed();
     return $_SESSION['cactus_auth'] ?? [];
 }
 function auth_logout(): void {
-    auth_start_session();
+    csrf_start_session_if_needed();
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
         $params = session_get_cookie_params();

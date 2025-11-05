@@ -42,8 +42,14 @@ if (!isset($_SESSION['identify'])) {
 // --- POST handler ------------------------------------------------------------
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
-    csrf_check_origin(['n7dz.net','www.n7dz.net']);
-
+    if (!csrf_check_same_origin(/* optionally: ['admin.n7dz.net'] */)) {
+        http_response_code(403);
+        $msg = 'Blocked due to cross-origin request.';
+        $errors[] = $msg;
+        // Don’t mutate state; render page with error.
+        exit($msg);
+    }
+    
     $action = $_POST['action'] ?? '';
 
     if (in_array($action, ['identify','login','browse'], true)) {
@@ -154,7 +160,7 @@ $identify = $_SESSION['identify'];
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title><?php echo htmlspecialchars($identify['event'] ?: 'Event'); ?> — Radio Society of Tucson Event Selection</title>
+  <title><?php echo htmlspecialchars($identify['event'] ?: ''); ?> Radio Society of Tucson Event Selection</title>
   <link rel="icon" type="image/png" sizes="32x32" href="img/cropped-RST-Logo-1-32x32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="img/cropped-RST-Logo-1-180x180.png">
   <link rel="icon" href="img/cropped-RST-Logo-1-32x32.jpg">
@@ -316,11 +322,12 @@ $identify = $_SESSION['identify'];
 <?php
 // Robust, folder-safe URL to probe endpoint:
 $probe_url = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\') . '/probe_call.php';
+$js_url = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\') . '/cactus-index.js';
 ?>
 <div id="cactus-config"
      data-event="<?= htmlspecialchars($event_explicit ? $selected_event : '') ?>"
      data-probe="<?= htmlspecialchars($probe_url) ?>">
 </div>
-<script src="/cactus.alpha/cactus-index.js?v=5"></script>
+<script src="<?= $js_url.'?v=3' ?>"></script>
 </body>
 </html>

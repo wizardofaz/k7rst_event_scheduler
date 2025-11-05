@@ -71,6 +71,36 @@ function build_url(array $p): string {
     return $u;
 }
 
+function secrets_path() {
+    // Replace the 'public_html' segment in the current directory path with 'secrets'
+    // and then look for secrets.php in the resulting path.
+    // Example:
+    //   __DIR__ = /user/xxx/public_html/rst
+    //   -> /user/xxx/secrets/rst/secrets.php
+
+    $here = __DIR__;
+
+    // Split path components handling / and \ separators
+    $parts = preg_split('#[\\\\/]#', $here);
+
+    // Find the public_html segment
+    $idx = array_search('public_html', $parts, true);
+    if ($idx === false) {
+        die("❌ Could not locate 'public_html' in path: {$here}");
+    }
+
+    // Swap it for 'secrets' and rebuild the path
+    $parts[$idx] = 'secrets';
+    $secrets_dir  = implode(DIRECTORY_SEPARATOR, $parts);
+    $secrets_path = $secrets_dir . DIRECTORY_SEPARATOR . 'secrets.php';
+
+    if (!file_exists($secrets_path)) {
+        die("❌ secrets.php not found at: {$secrets_path}");
+    }
+
+    return $secrets_path;
+}
+
 /** document-relative path helper */
 function _relative_path(string $fromDir, string $toPath): string {
     $from = array_values(array_filter(explode('/', trim($fromDir, '/'))));

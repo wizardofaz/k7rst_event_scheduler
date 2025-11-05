@@ -7,9 +7,11 @@ ini_set('session.cookie_secure', '1');
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax'); 
 
-session_start();
-
 require_once __DIR__ . '/logging.php'; // to get DEBUG_ constants
+require_once __DIR__ . '/util.php';
+require_once __DIR__ . '/csrf.php';
+
+csrf_start_session_if_needed();
 
 define('APP_VERSION', '1.0.10.28 2025-10-28');
 
@@ -22,15 +24,7 @@ if (strpos(__dir__ . '/', '.alpha/') !== false) {
     define('DEBUG_LEVEL', DEBUG_ERROR);
 }
 
-// assuming our code lives in some directory below public_html
-// and the secrets file lives a parallel path with /secrets/ 
-// substituted for /public_html/, this should find the correct secrets.php.
-// Get the name of the current app directory (e.g., "cactus" or "cactus.alpha")
-$subdir = basename(__DIR__);
-$secrets_path = __DIR__ . "/../../secrets/{$subdir}/secrets.php";
-if (!file_exists($secrets_path)) {
-    die("❌ secrets.php not found for environment '{$subdir}'");
-}
+$secrets_path = secrets_path();
 
 require_once __DIR__ . '/util.php';
 require_once $secrets_path; // master database password lives here

@@ -1,23 +1,31 @@
 <?php
+declare(strict_types=1);
+
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/logging.php';
 require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/login.php';
 require_once __DIR__ . '/assigned_call.php';
 
 log_msg(DEBUG_VERBOSE, "Session start - Current session data: " . json_encode($_SESSION));
 
 if (isset($_GET['logout'])) {
-	logout();
+	auth_logout();
     exit; // Stop further script execution
 }
 
 $session_timeout_minutes = round(ini_get('session.gc_maxlifetime') / 60);
 
+// Who is it, what can they do?
+$identify 			= $_SESSION['identify'] 	?? [];
+$auth 				= $_SESSION['cactus_auth']	?? [];
+$logged_in_call 	= $identify['callsign'] 	?? '';
+$logged_in_name 	= $identify['name'] 		?? '';
+$edit_authorized 	= (($auth['role'] ?? '') == 'auth');
+$browse_authorized 	= (($auth['role'] ?? '') == 'browse');
+$admin_authorized 	= ((int)($auth['is_admin'] ?? 0) === 1);
+
 // Initialize variables
-$op_call_input = ($_SESSION['logged_in_call'] ?? '');
-$op_name_input =  ($_SESSION['logged_in_name'] ?? '');
-$op_password_input = '';
 $start_date = '';
 $end_date = '';
 $time_slots = array_keys(TIME_OPTS); // all time slots selected by default
@@ -33,27 +41,15 @@ $scheduled_only = false;
 
 $event_start_date = EVENT_START_DATE;
 $event_end_date = EVENT_END_DATE;
-$password_error = '';
 
 // collect form data
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $op_call_input = strtoupper(trim($_POST['op_call'] ?? ''));
-	if (!$op_call_input) $op_call_input = ($_SESSION['logged_in_call'] ?? '');
-    $op_name_input = trim($_POST['op_name'] ?? '');
-	if (!$op_name_input) $op_name_input = ($_SESSION['logged_in_name'] ?? '');
-    $op_password_input = trim($_POST['op_password'] ?? '');
     $start_date = $_POST['start_date'] ?? '';
     $end_date = $_POST['end_date'] ?? '';
     $time_slots = $_POST['time_slots'] ?? [];
     $days_of_week = $_POST['days_of_week'] ?? [];
     $bands_list = $_POST['bands_list'] ?? [];
     $modes_list = $_POST['modes_list'] ?? [];
-
-	if (!$op_call_input || !$op_name_input) {
-		// this should not be possible because of REQUIRED on this input fields
-		trigger_error("operator call & name required", E_USER_WARNING);
-		exit;
-	}
 
 	// remember the most recent show button so it can be reused after an add/delete
 	// TODO this doesn't work: if (isset($_POST['mine_only']) || isset($_POST['enter_pressed'])) {
@@ -72,18 +68,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	}
 
     log_msg(DEBUG_VERBOSE, "Incoming POST: " . json_encode($_POST));
-    log_msg(DEBUG_INFO, "Session authenticated_users: " . json_encode($_SESSION['authenticated_users'] ?? []));
-    log_msg(DEBUG_INFO, "op_call_input: $op_call_input");
 	log_msg(DEBUG_INFO, "most_recent_show: " . (isset($_SESSION['most_recent_show']) ? $_SESSION['most_recent_show'] : '(not set)'));
 }
 
 $db_conn = get_event_db_connection_from_master(EVENT_NAME);
 
-$authorized = login($db_conn, $op_call_input, $op_name_input, $op_password_input);
-
-// authentication not required for browsing
-$requires_authentication = isset($_POST['add_selected']) || isset($_POST['delete_selected']);
-	
 $table_rows = [];
 
 $club_station_conflict = 0;
@@ -91,8 +80,8 @@ $band_mode_conflict = 0;
 $required_club_station_missing = 0;
 
 // build the table to be displayed, optionally with add/delete buttons (if authorized)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authentication) ) {
-    if (isset($_POST['add_selected']) && isset($_POST['slots'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($edit_authorized && isset($_POST['add_selected']) && isset($_POST['slots'])) {
 		log_msg(DEBUG_INFO, "processing schedule add:");
         foreach ($_POST['slots'] as $slot) {
 			$assigned_call = null;
@@ -102,20 +91,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 			$mode = $_POST['mode'][$slot] ?? null;
             $club_station = $_POST['club_station'][$slot] ?? '';
             $notes = $_POST['notes'][$slot] ?? '';
-			log_msg(DEBUG_INFO, "\tadd info: date=" . $date . ", time=" . $time . ", call=" . $op_call_input . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
+			log_msg(DEBUG_INFO, "\tadd info: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
             // Check club station conflict: more than one op in given date/time/club_station
             if (!empty($club_station)) {
 				$club_station_conflict_check = db_check_club_station_in_use($db_conn, $date, $time, $club_station);
                 if ($club_station_conflict_check) {
                     $club_station_conflict += 1;
 					$_SESSION['club_station_conflict_flash'] = true;
-					log_msg(DEBUG_INFO, "club_station_conflict: date=" . $date . ", time=" . $time . ", call=" . $op_call_input . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
+					log_msg(DEBUG_INFO, "club_station_conflict: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
                 }
             }
 			// For some events (e.g. Field Day) "club_station" selection is required
 			if (empty($club_station) && CLUB_STATION_REQUIRED) {
 				$_SESSION['required_club_station_missing_flash'] = true;
-				log_msg(DEBUG_INFO, "required_club_station_missing: date=" . $date . ", time=" . $time . ", call=" . $op_call_input . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
+				log_msg(DEBUG_INFO, "required_club_station_missing: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
 				$required_club_station_missing += 1;
 			}
 
@@ -124,23 +113,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 			if ($band_mode_conflict_check) {
             	$band_mode_conflict += 1;
 				$_SESSION['band_mode_conflict_flash'] = true;
-				log_msg(DEBUG_INFO, "band_mode_conflict: date=" . $date . ", time=" . $time . ", call=" . $op_call_input . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
+				log_msg(DEBUG_INFO, "band_mode_conflict: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
 			}
 
 			if(EVENT_CALLSIGNS_REQUIRED) {
-				$assigned_call = choose_assigned_call($date, $time, $op_call_input, $band, $mode);
+				$assigned_call = choose_assigned_call($date, $time, $logged_in_call, $band, $mode);
 			    if ($assigned_call === null) {
 					// all calls are in use in this slot, must reject
 					$_SESSION['slot_full_flash'] = true;
 					log_msg(DEBUG_INFO, "No callsign available for {$date} {$time} (slot full).");
 				} else {
-					log_msg(DEBUG_VERBOSE, "assigned_call is {$assigned_call} for {$date} {$time} {$op_call_input}.");
+					log_msg(DEBUG_VERBOSE, "assigned_call is {$assigned_call} for {$date} {$time} {$logged_in_call}.");
 				}
 			}
 
 			//TODO unclear why this is based on conflict count rather than just a flag for this row
 			if ((!EVENT_CALLSIGNS_REQUIRED || $assigned_call) && !$band_mode_conflict && !$club_station_conflict && !$required_club_station_missing) {
-				db_add_schedule_line($db_conn, $date, $time, $op_call_input, $op_name_input, $band, $mode, $assigned_call, $club_station, $notes);
+				db_add_schedule_line($db_conn, $date, $time, $logged_in_call, $logged_in_name, $band, $mode, $assigned_call, $club_station, $notes);
 			}
         }
 
@@ -151,12 +140,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 		$scheduled_only = ($_SESSION['most_recent_show'] === 'scheduled_only');
     }
 
-    if (isset($_POST['delete_selected']) && isset($_POST['delete_slots'])) {
+    if ($edit_authorized && isset($_POST['delete_selected']) && isset($_POST['delete_slots'])) {
 		log_msg(DEBUG_INFO, "processing schedule delete of " . json_encode($_POST['delete_slots']));
         foreach ($_POST['delete_slots'] as $slot) {
             list($date, $time, $band, $mode) = explode('|', $slot);
-			log_msg(DEBUG_DEBUG, "processing delete: $date $time $band $mode $op_call_input");
-			$deleted = db_delete_schedule_line($db_conn, $date, $time, $band, $mode, $op_call_input);
+			log_msg(DEBUG_DEBUG, "processing delete: $date $time $band $mode $logged_in_call");
+			$deleted = db_delete_schedule_line($db_conn, $date, $time, $band, $mode, $logged_in_call);
 			log_msg(DEBUG_DEBUG, "delete result: " . $deleted);
         }
 
@@ -207,30 +196,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 
 		log_msg(DEBUG_VERBOSE, "dates[]: " . json_encode($dates));
 		log_msg(DEBUG_VERBOSE, "times[]: " . json_encode($times));
+		log_msg(DEBUG_VERBOSE, "bands[]: " . json_encode($bands_list));
+		log_msg(DEBUG_VERBOSE, "modes[]: " . json_encode($modes_list));
 
         foreach ($dates as $date) {
             foreach ($times as $time) {
 				$r = db_get_schedule_for_date_time($db_conn, $date, $time);
 				$none_are_me = true;
+				$no_schedule_for_slot = ($r->num_rows === 0);
 				while ($r->num_rows > 0 && $row = $r->fetch_assoc()) {
 					$op = $row ? strtoupper($row['op_call']) : null;
-					if($op === $op_call_input) $none_are_me = false;
+					$this_is_me = ($op === $logged_in_call);
+					if ($this_is_me) $none_are_me = false;
 					$name = $row ? $row['op_name'] : null;
 					$band = $row ? $row['band'] : null;
 					$mode = $row ? $row['mode'] : null;
+					log_msg(DEBUG_DEBUG, "Testing schedule line on filters: $date $time $band $mode");
 					$assigned_call = $row['assigned_call'] ?? '';
 					$club_station = $row['club_station'] ?? '';
 					$notes = $row['notes'] ?? '';
+					// apply band and mode filters
+					if (!in_array($band, $bands_list) || !in_array($mode, $modes_list)) continue;
 					// skip open slots when showing only scheduled
 					if ($scheduled_only && !$op) continue;  
 					// skip lines for other ops when showing only mine
-					if (($mine_only || $mine_plus_open) && $op !== $op_call_input) continue;
+					if (($mine_only || $mine_plus_open) && !$this_is_me) continue;
 					// gather what's left to be displayed in the table
+					log_msg(DEBUG_DEBUG, "Schedule line was not filtered");
 					$table_rows[] = compact('date', 'time', 'band', 'mode', 'assigned_call', 'op', 'name', 'club_station', 'notes');
 				}
-				// add an unscheduled row if current call is not scheduled in this slot
-				// because we can schedule multiple ops in one slot (other mode and/or other special event callsign)
-				if (($complete_calendar || $mine_plus_open) && $none_are_me) {
+				// add an unscheduled row if current call is not scheduled in this slot, for the possibility of adding "me",
+				// because we can schedule multiple ops in one slot (other mode and/or other special event callsign).
+				// Or add an open line for otherwise empty slots when "complete_schedule" is requested.
+				if (($mine_plus_open && $none_are_me) || ($complete_calendar && $no_schedule_for_slot)) {
 					$assigned_call = $band = $mode = $op = $name = $club_station = $notes = null;
 					$table_rows[] = compact('date', 'time', 'band', 'mode', 'assigned_call', 'op', 'name', 'club_station', 'notes');
 				}
@@ -266,41 +264,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 
 <h2><?php echo htmlspecialchars(EVENT_DISPLAY_NAME) ?> Operator Scheduling 
 <a href="how-do-i-use-this.php" target="_blank">(How do I use this?)</a>
-<a href="visualizer.php">(Switch to "Visualizer" grid)</a></h2>
-
-<?php if ($password_error): ?>
-    <p style="color:red; font-weight:bold;"><?= $password_error ?></p>
-<?php endif; ?>
-
-<?php log_msg(DEBUG_INFO, 'Logged-in flash status: ' . ($_SESSION['login_flash'] ?? 'NOT SET')); ?>
-
-<?php if (!empty($_SESSION['login_flash'])): 
-	switch ($_SESSION['login_flash']) {
-		case 'success':
-			$flash_colors = 'background-color: #d4edda; color: #155724;';
-			$flash_msg = "✅ Password accepted. You're now logged in. Your session will remain active for up to {$session_timeout_minutes} minutes of inactivity.";
-			break;
-		case 'new_pw':
-			$flash_colors = 'background-color: #d4edda; color: #155724;';
-			$flash_msg = "✅ New password accepted. You're now logged in. Your session will remain active for up to {$session_timeout_minutes} minutes of inactivity.";
-			break;
-		case 'fail':
-		default:
-			$flash_colors = 'background-color: #f8d7da; color: #721c24;';
-			$flash_msg = "✅ Login failed, password did not match or did not exist for {$op_call_input}";
-			break;
-	}	
-	?>
-    <div id="login-flash" style="
-		<?= $flash_colors ?>
-        padding: 10px;
-        border: 1px solid #c3e6cb;
-        margin-bottom: 1em;
-        border-radius: 4px;
-        max-width: 600px;">
-        <?= $flash_msg ?>
-    </div>
-<?php $_SESSION['login_shown'] = true; unset($_SESSION['login_flash']); endif; ?>
+<a href="visualizer.php">(Switch to "Visualizer" grid)</a>
+</h2>
 
 <?php if (!empty($_SESSION['band_mode_conflict_flash'])): ?>
     <div id="band-mode-conflict-flash" style="
@@ -356,35 +321,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 
 <form method="POST">
     <div class="section">
-		<?php if ($authorized): ?>
-			<strong><?= htmlspecialchars($op_call_input) ?></strong> is logged in.
- 			<a href="?logout=1&event=<?= EVENT_NAME ?>" class="logout-button">Log Out</a>
+		<?php if ($edit_authorized): ?>
+			<strong><?= htmlspecialchars($logged_in_call) ?></strong> is logged in.
 		<?php else: ?>
-			<div class="login-row">
-				<label for="op_call"><strong>Callsign:</strong></label>
-				<div class="login-tooltip-wrap">
-					<input type="text" name="op_call" id="op_call" value="<?= htmlspecialchars($op_call_input) ?>" required>
-					<div class="login-tooltip-text">Enter callsign – required for all operations.</div>
-				</div>
-
-				<label for="op_name"><strong>Name:</strong></label>
-				<div class="login-tooltip-wrap">
-					<input type="text" name="op_name" id="op_name" value="<?= htmlspecialchars($op_name_input) ?>" required>
-					<div class="login-tooltip-text">Enter a name, short name is fine, required for all operations.</div>
-				</div>
-
-				<label for="op_password"><strong>Password:</strong></label>
-				<div class="login-tooltip-wrap">
-					<input type="password" name="op_password" id="op_password">
-					<div class="login-tooltip-text">Enter a password, optional, but once used, always required.</div>
-				</div>
-
-				<div class="login-tooltip-wrap">
-					<input class="login-button" type="submit" name="login" value="Login">
-					<div class="login-tooltip-text">Click to login, or just press enter.</div>
-				</div>
-  			</div>
+			Logged in for browsing only.
 		<?php endif; ?>
+		<a href="?logout=1" class="logout-button">Log Out</a>
     </div>
 
 	<div class="filter-section">
@@ -440,7 +382,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 		
 		<!-- See JavaScript handlers at the bottom for how dynamic checkbox behavior is handled in these two <div> sections -->
 		<div class="section">
-			<strong>What parts of the day would you like to operate?</strong><br>
+			<strong>What parts of the day would you like to view?</strong><br>
 			<?php
 			foreach (TIME_OPTS as $val => $label): ?>
 				<?php if (strtoupper($val) === 'ALL'): ?>
@@ -452,21 +394,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 		</div>
 
 		<div class="section">
-			<strong>Which days of the week?</strong><br>
+		<strong>Which days of the week?</strong><br>
 			<?php
 			foreach (DAY_OPTS as $val => $label): ?>
-				<?php if (strtoupper($val) === 'ALL'): ?>
+				<?php if (strtoupper(strval($val)) === 'ALL'): ?>
 					<label><input type="checkbox" class="select-all" data-group="days_of_week" name="days_of_week[]" value="<?= $val ?>" <?= in_array($val, $days_of_week ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
 				<?php else: ?>
 					<label><input type="checkbox" name="days_of_week[]" value="<?= $val ?>" <?= in_array($val, $days_of_week ?? []) ? 'checked' : '' ?>> <?= $label ?></label>
 				<?php endif; ?>	
-			<?php endforeach; ?>
+		<?php endforeach; ?>
 		</div>
 
 		<div class="section">
 			<strong>Select bands of interest:</strong><br>
 			<?php
-			foreach ($bands_list as $band): ?>
+			foreach (BANDS_LIST as $band): ?>
 				<?php if (strtoupper($band) === 'ALL'): ?>
 					<label><input type="checkbox" class="select-all" data-group="bands_list" name="bands_list[]" value="<?= $band ?>" <?= in_array($band, $bands_list ?? []) ? 'checked' : '' ?>> <?= $band ?></label>
 				<?php else: ?>
@@ -478,7 +420,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 		<div class="section">
 			<strong>Select modes of interest:</strong><br>
 			<?php
-			foreach ($modes_list as $mode): ?>
+			foreach (MODES_LIST as $mode): ?>
 				<?php if (strtoupper($mode) === 'ALL'): ?>
 					<label><input type="checkbox" class="select-all" data-group="modes_list" name="modes_list[]" value="<?= $mode ?>" <?= in_array($mode, $modes_list ?? []) ? 'checked' : '' ?>> <?= $mode ?></label>
 				<?php else: ?>
@@ -496,8 +438,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
     	<div class="button-container">
         	<input type="submit" name="complete_calendar" value="Show Complete Calendar (scheduled and open)">
         	<input type="submit" name="scheduled_only" value="Show Scheduled Slots Only">
-        	<input type="submit" name="mine_plus_open" value="Show My Schedule and Open Slots">
-        	<input type="submit" name="mine_only" value="Show My Schedule Only">
+			<?php if ($edit_authorized): ?>
+	        	<input type="submit" name="mine_plus_open" value="Show My Schedule and Open Slots">
+    	    	<input type="submit" name="mine_only" value="Show My Schedule Only">
+			<?php endif; ?>
     	</div>
 	</div>
 
@@ -518,7 +462,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 		foreach ($table_rows as $r):
 			$date = $r['date'];
 			$time = $r['time'];
-			$assigned_call = $r["assigned_call"];
+			$assigned_call = $r['assigned_call'];
 			$op = $r['op'];
 			$name = $r['name'];
 			$band = $r['band'];
@@ -536,14 +480,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 			}
 			$status = 'Open';
 			if ($op) {
-				$status = ($op === $op_call_input) ? 'Booked by you' : "Booked by {$op} {$name}";
+				$status = ($op === $logged_in_call) ? 'Booked by you' : "Booked by {$op} {$name}";
 			}
 		?>
 		<tr style="<?= $status === 'Booked by you' ? 'background-color:' . $highlight_booked_by_you : 'background-color:' . $highlight_color ?>">
 			<td>
-				<?php if ($status === 'Open' && $authorized): ?>
+				<?php if ($status === 'Open' && $edit_authorized): ?>
 					<input type="checkbox" name="slots[]" value="<?= $key ?>">
-				<?php elseif ($status === "Booked by you" && $authorized): ?>
+				<?php elseif ($status === "Booked by you" && $edit_authorized): ?>
 					<input type="checkbox" name="delete_slots[]" value="<?= $key ?>"> Delete
 				<?php else: ?>
 					--
@@ -553,7 +497,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 			<td><?= $time ?></td>
 			<td><?= $assigned_call ?></td>
 			<td>
-				<?php if ($status === 'Open'): ?>
+				<?php if ($edit_authorized && $status === 'Open'): ?>
 					<!-- Dropdown for Band -->
 					<select name="band[<?= $key ?>]">
 						<?php foreach ($bands_list as $band): ?>
@@ -564,11 +508,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 					</select>
 				<?php else: ?>
 					<!-- Display fixed band -->
-					<?= htmlspecialchars($r['band']) ?: '--' ?>
+					<?= htmlspecialchars($r['band'] ?? '') ?: '--' ?>
 				<?php endif; ?>
 			</td>
 			<td>
-				<?php if ($status === 'Open'): ?>
+				<?php if ($edit_authorized && $status === 'Open'): ?>
 					<!-- Dropdown for Mode -->
 					<select name="mode[<?= $key ?>]">
 						<?php foreach ($modes_list as $mode): ?>
@@ -579,11 +523,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 					</select>
 				<?php else: ?>
 					<!-- Display fixed mode -->
-					<?= htmlspecialchars($r['mode']) ?: '--' ?>
+					<?= htmlspecialchars($r['mode'] ?? '') ?: '--' ?>
 				<?php endif; ?>
 			</td>
 			<td>
-				<?php if ($status === 'Open'): ?>
+				<?php if ($edit_authorized && $status === 'Open'): ?>
 					<!-- Dropdown for Club Station -->
 					<select name="club_station[<?= $key ?>]">
 						<option value="">(Own Station)</option>
@@ -601,16 +545,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 					</select>
 				<?php else: ?>
 					<!-- Display fixed club station -->
-					<?= htmlspecialchars($r['club_station']) ?: '--' ?>
+					<?= htmlspecialchars($r['club_station'] ?? '') ?: '--' ?>
 				<?php endif; ?>
 			</td>
 			<td>
-				<?php if ($status === 'Open'): ?>
+				<?php if ($edit_authorized && $status === 'Open'): ?>
 					<!-- Input for Notes -->
-					<input type="text" name="notes[<?= $key ?>]" value="<?= htmlspecialchars($r['notes']) ?>" size="20">
+					<input type="text" name="notes[<?= $key ?>]" value="<?= htmlspecialchars($r['notes'] ?? '') ?>" size="20">
 				<?php else: ?>
 					<!-- Display fixed notes -->
-					<?= htmlspecialchars($r['notes']) ?: '--' ?>
+					<?= htmlspecialchars($r['notes'] ?? '') ?: '--' ?>
 				<?php endif; ?>
 			</td>
 			<td><?= $status ?></td>
@@ -620,7 +564,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 
 
 	<br>
-	<?php if ($authorized): ?>
+	<?php if ($edit_authorized): ?>
 		<input type="submit" name="add_selected" value="Add Selected Slots">
 		<input type="submit" name="delete_selected" value="Delete Selected Slots">
 	<?php endif; ?>
@@ -630,7 +574,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($authorized || !$requires_authenti
 
 <?php if ($table_rows): ?> 
 	<form method="post" action="export_csv.php">
-		<input type="hidden" name="op_call" value="<?= htmlspecialchars($op_call_input) ?>">
+		<input type="hidden" name="op_call" value="<?= htmlspecialchars($logged_in_call) ?>">
 		<input type="hidden" name="table_data" value="<?= htmlspecialchars(json_encode($table_rows)) ?>">
 		<button type="submit">⬇️ Download CSV</button>
 		<button type="button" onclick="window.print()">🖨️ Print Schedule</button>

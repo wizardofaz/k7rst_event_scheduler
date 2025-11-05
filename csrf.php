@@ -49,18 +49,79 @@ function csrf_validate(?string $key, ?string $token): bool {
     return $ok;
 }
 
-/** (Optional) Defense-in-depth: Origin/Referer check for POSTs */
-function csrf_check_origin(array $allowedHosts): bool {
-    if (strtoupper($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') return true;
-    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-    $referer = $_SERVER['HTTP_REFERER'] ?? '';
-    foreach ([$origin, $referer] as $hdr) {
-        if ($hdr) {
-            $host = parse_url($hdr, PHP_URL_HOST);
-            if ($host && in_array($host, $allowedHosts, true)) return true;
-        }
+// --- Helpers to derive the "effective" scheme/host for this request ---
+function cactus_effective_scheme(): string {
+    // Respect reverse proxies if present
+    if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+        return strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']);
     }
-    // If no headers present, you can choose to allow or deny.
-    // Returning true here to avoid false negatives on some clients.
+    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+        return 'https';
+    }
+    return 'http';
+}
+
+function cactus_effective_host(): string {
+    // Prefer X-Forwarded-Host, then Host, then SERVER_NAME
+    $host = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
+    $host = strtolower(trim($host));
+
+    // If Host had a port, strip it for origin compare
+    if (strpos($host, ':') !== false) {
+        [$hostOnly,] = explode(':', $host, 2);
+        $host = $hostOnly;
+    }
+    // Optional: normalize IDN (needs ext-intl). Safe to skip if not available.
+    if (function_exists('idn_to_ascii')) {
+        $ascii = idn_to_ascii($host, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+        if ($ascii) $host = strtolower($ascii);
+    }
+    return $host;
+}
+
+// --- Parse Origin/Referer and compare to effective origin ---
+function csrf_check_same_origin(array $extra_allowed_hosts = []): bool {
+    $scheme = cactus_effective_scheme();
+    $host   = cactus_effective_host();
+
+    // Build the set of allowed hosts dynamically:
+    $allowed = array_unique(array_filter([
+        $host,
+        // auto-allow the www./non-www. twin
+        (str_starts_with($host, 'www.') ? substr($host, 4) : ('www.' . $host)),
+        // any extras the caller wants to add (e.g., admin subdomain)
+        ...array_map('strtolower', $extra_allowed_hosts),
+    ]));
+
+    // Prefer Origin; fall back to Referer; if neither present, allow.
+    $hdr = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? '';
+    if ($hdr === '') {
+        // No Origin/Referer (old browser, privacy settings). Token still protects.
+        return true;
+    }
+
+    $parts = parse_url($hdr);
+    if (!$parts) {
+        return false;
+    }
+
+    $h = strtolower($parts['host'] ?? '');
+    // Normalize IDN
+    if ($h && function_exists('idn_to_ascii')) {
+        $ascii = idn_to_ascii($h, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+        if ($ascii) $h = strtolower($ascii);
+    }
+
+    $sch = strtolower($parts['scheme'] ?? '');
+    // If port present, ensure it matches too (optional; usually not needed)
+    // $prt = isset($parts['port']) ? (int)$parts['port'] : null;
+
+    // Must be same scheme and host in our allowed set
+    if ($sch !== $scheme) {
+        return false;
+    }
+    if (!in_array($h, $allowed, true)) {
+        return false;
+    }
     return true;
 }

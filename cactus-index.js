@@ -1,3 +1,5 @@
+// if you edit this file, change the ?v= where referenced (e.g. in index.php) 
+// to defeat browser caching
 (function () {
   var cfg = document.getElementById('cactus-config');
   if (!cfg) return;

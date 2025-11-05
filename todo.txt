@@ -4,8 +4,16 @@ Bugs:
 no error is given for wrong password
 when switch events, user remains logged in
 when log out index page doesn't do the event selected unless you change it
+broken logic if starting scheduler.php?event=xxx (low priority fix)
 
 todo:
+mode and band filters don't work and options disappear
+handle $errors[] (scan code for this)
+finish implemention csrf checks
+expose public search for all event wavelogs
+generalize the code that references index.php explicitly 
+generalize the code that references n7dz.net explicitly
+add "who's on now" button that is quick show of next 4 hours
 move login to index.php, require login with pw (no more un-authenticated users)
 add admin mode as option on index.php (coupled with adding login option)
 add browse-only on sheduler without login
@@ -40,6 +48,7 @@ handle enter key to show just my schedule, or maybe just log in
 admin screen, admin users
 
 Done:
+days of week "ALL" should be first not last
 Test slot full 
 Flag for club station required (support for field day) 
 Flag for “EVENT_CALLSIGNS_REQUIRED” (all one call except GOTA) (supports field day)
