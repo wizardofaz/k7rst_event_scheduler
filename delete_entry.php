@@ -3,20 +3,19 @@
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/login.php';
+require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/logging.php';
 
 $conn = get_event_db_connection_from_master(EVENT_NAME);
 
-$op_call = strtoupper($_POST['call'] ?? ($_SESSION['logged_in_call'] ?? ''));
-$op_name = $_POST['name'] ?? ($_SESSION['logged_in_name'] ?? '');
-$op_pw   = $_POST['password'] ?? '';
+$op_call = auth_is_authenticated() ? auth_get_callsign() : '';
+$op_name = auth_is_authenticated() ? auth_get_name() : '';
 $date    = $_POST['date'] ?? '';
 $time    = $_POST['time'] ?? '';
 $band    = $_POST['band'] ?? '';
 $mode    = $_POST['mode'] ?? '';
-
-log_msg(DEBUG_INFO, "DELETE attempt for $op_call at $date $time band=$band mode=$mode");
+$club    = $_POST['club_station'] ?? '';
+$notes   = $_POST['notes'] ?? '';
 
 if (!$op_call || !$date || !$time || !$band || !$mode) {
     http_response_code(400);
@@ -24,7 +23,9 @@ if (!$op_call || !$date || !$time || !$band || !$mode) {
     exit;
 }
 
-$authorized = login($conn, $op_call, $op_name, $op_pw);
+log_msg(DEBUG_INFO, "DELETE attempt for $op_call at $date $time band=$band mode=$mode");
+
+$authorized = auth_is_authenticated();
 
 if (!$authorized) {
     http_response_code(403);

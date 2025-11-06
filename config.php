@@ -19,7 +19,7 @@ define('APP_VERSION', '1.0.10.28 2025-10-28');
 if (strpos(__dir__ . '/', '.alpha/') !== false) {
     define('DEVELOPER_FLAG', true);
     define('CODE_VERSION', 'alpha');
-    define('DEBUG_LEVEL', DEBUG_VEBOSE);
+    define('DEBUG_LEVEL', DEBUG_VERBOSE);
 } else {
     define('CODE_VERSION', 'beta');
     define('DEBUG_LEVEL', DEBUG_ERROR);

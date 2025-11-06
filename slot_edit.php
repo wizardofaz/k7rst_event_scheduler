@@ -3,13 +3,14 @@
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/logging.php';
 require_once __DIR__ . '/assigned_call.php';
 
 $conn = get_event_db_connection_from_master(EVENT_NAME);
 $date = $_GET['date'] ?? '';
 $time = $_GET['time'] ?? '';
-$logged_in_call = $_SESSION['logged_in_call'] ?? '';
+$logged_in_call = auth_is_authenticated() ? auth_get_callsign() : '';
 
 if (!$date || !$time) {
     echo "<p>Missing date or time.</p>";

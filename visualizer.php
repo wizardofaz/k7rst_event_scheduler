@@ -2,30 +2,20 @@
 // visualizer.php
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/logging.php';
 require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/login.php';
 require_once __DIR__ . '/assigned_call.php';
 
 $conn = get_event_db_connection_from_master(EVENT_NAME);
 
-// Handle login and logout
-$authorized = false;
-$op_call = strtoupper($_POST['call'] ?? ($_SESSION['logged_in_call'] ?? ''));
-$op_name = $_POST['name'] ?? ($_SESSION['logged_in_name'] ?? '');
-$op_pw = $_POST['password'] ?? '';
+$op_call = auth_get_callsign() ?? '';
+$op_name = auth_get_name() ?? '';
 if (isset($_POST['logout'])) {
-    unset($_SESSION['authenticated_users']);
-    unset($_SESSION['logged_in_call']);
-    $op_call = '';
-    logout();
+    auth_logout();
     exit;
 }
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $op_call) {
-    $authorized = login($conn, $op_call, $op_name, $op_pw);
-} elseif (isset($_SESSION['authenticated_users'][$op_call]) && $_SESSION['authenticated_users'][$op_call]) {
-    $authorized = true;
-}
+$authorized = auth_is_authenticated();
 
 // Handle max score input
 $userMaxScore = isset($_GET['max_score']) ? (int)$_GET['max_score'] : 10;
@@ -115,13 +105,13 @@ if ($authorized) {
     echo "<form method='post' style='display:inline;'>
     <strong>$op_call</strong> logged in <button name='logout'>Logout</button>
     </form><br><br>";
-} else {
+/* } else {
     echo "<form method='post'>
         Call: <input name='call' value='" . htmlspecialchars($op_call) . "'>
         Name: <input name='name' value='" . htmlspecialchars($op_name) . "'>
         Password: <input name='password' type='password'>
         <button type='submit'>Login</button>
-    </form>";
+    </form>"; */
 }
 
 echo "<form method='get'>
