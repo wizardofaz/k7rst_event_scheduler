@@ -3,6 +3,7 @@
 (function () {
   var cfg = document.getElementById('cactus-config');
   if (!cfg) return;
+  if (cfg.dataset.forcePw === '1') return; // debug mode: skip attaching listeners / probes
 
   var selectedEvent = (cfg.getAttribute('data-event') || '').trim();
   var PROBE_URL     = (cfg.getAttribute('data-probe') || '').trim();

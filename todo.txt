@@ -9,6 +9,7 @@ when log out index page doesn't do the event selected unless you change it
 broken logic if starting scheduler.php?event=xxx (low priority fix)
 
 todo:
+finish the ?showpw=1 debug mode; as is the edit schedule button is not active in that mode
 mode and band filters don't work and options disappear
 handle $errors[] (scan code for this)
 finish implemention csrf checks

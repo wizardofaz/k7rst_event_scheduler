@@ -10,6 +10,9 @@ require_once __DIR__ . '/logging.php';
 
 csrf_start_session_if_needed();
 
+// Turn on for debugging by using: index.php?showpw=1
+$force_pw = isset($_GET['showpw']) ? ($_GET['showpw'] === '1') : false;
+
 $errors = [];
 $messages = [];
 
@@ -64,7 +67,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             auth_set_event($new_event);
             $_SESSION['event_explicit'] = true;
         }
-        header('Location: index.php'); // PRG so config.php can re-define constants
+ 
+        header('Location: '.$_SERVER['REQUEST_URI']); // PRG so config.php can re-define constants
         exit;
     }
 
@@ -270,22 +274,22 @@ $events   = list_events_from_master_with_status();
       </div>
 
       <!-- Password area (hidden until callsign is probed) -->
-      <div id="secPassword" style="display:none; margin-top:12px;">
-        <div id="pwNew" style="display:none;">
+      <div id="secPassword" style="<?= $force_pw ? 'display:block; margin-top:12px;' : 'display:none; margin-top:12px;' ?>">
+        <div id="pwNew" style="<?= $force_pw ? 'display:block' : 'display:none' ?>">
           <div class="msg" style="margin-bottom:8px;">No password on file. Create one below.</div>
           <label for="password"><strong>Create password</strong></label>
           <input id="password" type="password" autocomplete="new-password">
           <label for="password2" style="margin-top:10px;"><strong>Confirm password</strong></label>
           <input id="password2" type="password" autocomplete="new-password">
         </div>
-        <div id="pwExists" style="display:none;">
+        <div id="pwExists" style="<?= $force_pw ? 'display:block' : 'display:none' ?>">        
           <label for="passwordX"><strong>Password</strong></label>
           <input id="passwordX" type="password" autocomplete="current-password">
         </div>
       </div>
 
       <!-- (2c) Secured actions (hidden until callsign probed; login + go) -->
-      <div id="secActions" class="actions" style="display:none; margin-top:12px; gap:14px; flex-wrap:wrap;">
+      <div id="secActions" class="actions" style="<?= $force_pw ? 'display:flex' : 'display:none; margin-top:12px;' ?>; gap:14px; flex-wrap:wrap;"> 
         <?php if ($hasSched): ?>
           <button id="btnEdit" class="btn primary" type="button">Edit Schedule</button>
         <?php else: ?>
@@ -318,9 +322,10 @@ $probe_url = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\') . '/probe_call.php';
 $js_url = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\') . '/cactus-index.js';
 ?>
 <div id="cactus-config"
-     data-event="<?= htmlspecialchars($event_explicit ? $selected_event : '') ?>"
-     data-probe="<?= htmlspecialchars($probe_url) ?>">
+     data-event="<?= $force_pw ? '' : ($event_explicit ? htmlspecialchars($selected_event) : '') ?>"
+     data-probe="<?= htmlspecialchars($probe_url) ?>"
+     data-force-pw="<?= $force_pw ? '1' : '0' ?>">
 </div>
-<script src="<?= $js_url.'?v=3' ?>"></script>
+<script src="<?= $js_url.'?v=6' ?>"></script>
 </body>
 </html>
