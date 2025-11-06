@@ -119,6 +119,7 @@ function auth_logout(): void {
 }
 
 function auth_initialize(): void {
+    // need the line below because of a bug not understoor yet
     if (isset($_SESSION['cactus_auth'])) return; // DEBUG TEST
 
     // called by csrf_start_session_if_needed so DON'T call that!! (recursion)
@@ -216,7 +217,7 @@ function auth_set_callsign(string $c) {
     $_SESSION['cactus_auth']['callsign'] = $c;
 }
 
-// but changing name is harmless
+// but changing name is harmless 
 function auth_set_name(string $n) {
     csrf_start_session_if_needed();
     $_SESSION['cactus_auth']['name'] = $n;
