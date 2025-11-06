@@ -10,6 +10,43 @@ define('DEBUG_CODEWORD',["ERROR","WARN","INFO","VERBOSE","DEBUG"]);
 
 define('DEBUG_SYMBOL', ['❌','⚠️','ℹ️','📢','🔍']);
 
+/**
+ * Return true if the given file is allowed to emit logs.
+ * Controlled by optional constants (defined elsewhere, e.g. debug_list.php):
+ *   - DEBUG_ONLY_FILES: string[] of exact basenames
+ *   - DEBUG_ONLY_GLOB:  string[] of fnmatch() wildcard patterns (match on basename)
+ *   - DEBUG_ONLY_REGEX: string[] of PCRE patterns (match on full path)
+ *
+ * If none of the above are defined, all files are allowed.
+ */
+function __debug_file_allowed(string $fullpath): bool {
+    $anyFilter =
+        defined('DEBUG_ONLY_FILES') ||
+        defined('DEBUG_ONLY_GLOB')  ||
+        defined('DEBUG_ONLY_REGEX');
+    if (!$anyFilter) return true; // no filters configured
+
+    $base = basename($fullpath);
+
+    if (defined('DEBUG_ONLY_FILES') && is_array(DEBUG_ONLY_FILES)) {
+        if (in_array($base, DEBUG_ONLY_FILES, true)) return true;
+    }
+
+    if (defined('DEBUG_ONLY_GLOB') && is_array(DEBUG_ONLY_GLOB)) {
+        foreach (DEBUG_ONLY_GLOB as $pat) {
+            if (is_string($pat) && fnmatch($pat, $base)) return true;
+        }
+    }
+
+    if (defined('DEBUG_ONLY_REGEX') && is_array(DEBUG_ONLY_REGEX)) {
+        foreach (DEBUG_ONLY_REGEX as $re) {
+            if (is_string($re) && @preg_match($re, $fullpath)) return true;
+        }
+    }
+
+    return false;
+}
+
 function log_msg($level,$message) {
 
     if (!isset($_SESSION['debug_level'])) {
@@ -35,6 +72,12 @@ function log_msg($level,$message) {
         $file = basename($caller['file'] ?? 'unknown');
         $line = $caller['line'] ?? '?';
         $func = $caller['function'] ?? 'global';
+
+        // Respect optional debug file filters if configured.
+        $fullpath = $caller['file'] ?? '';
+        if ($fullpath !== '' && !__debug_file_allowed($fullpath)) {
+            return;
+        }
 
         $tag = DEBUG_CODEWORD[$level] ?? "UNKNOWN";
         $icon = DEBUG_SYMBOL[$level] ?? "❓";

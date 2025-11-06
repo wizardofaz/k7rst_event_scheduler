@@ -155,7 +155,7 @@ foreach ($period as $dateObj) {
         $entries = [];
         if ($result) while ($row = $result->fetch_assoc()) $entries[] = $row;
         $s = score($rowDate, $rowTime, $entries);
-        log_msg(DEBUG_DEBUG, "SCORE: $rowDate $rowTime $s " . json_encode($entries));
+        log_msg(DEBUG_VERBOSE, "SCORE: $rowDate $rowTime $s " . json_encode($entries));
         $norm = min(1.0, $s / max(1, $userMaxScore));
         $color = score_to_color($norm);
 

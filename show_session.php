@@ -26,7 +26,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['action'] ?? '') ==
         http_response_code(403);
         exit('Invalid logout request.');
     }
-    log_msg(DEBUG_DEBUG, "logout requested with POST");
+    log_msg(DEBUG_VERBOSE, "logout requested with POST");
     auth_logout();
     header('Location: index.php');
     exit;

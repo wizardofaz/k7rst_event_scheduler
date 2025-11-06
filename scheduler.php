@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$_SESSION['most_recent_show'] = 'scheduled_only';
 	}
 
-    log_msg(DEBUG_VERBOSE, "Incoming POST: " . json_encode($_POST));
+    log_msg(DEBUG_DEBUG, "Incoming POST: " . json_encode($_POST));
 	log_msg(DEBUG_INFO, "most_recent_show: " . (isset($_SESSION['most_recent_show']) ? $_SESSION['most_recent_show'] : '(not set)'));
 }
 
@@ -142,9 +142,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		log_msg(DEBUG_INFO, "processing schedule delete of " . json_encode($_POST['delete_slots']));
         foreach ($_POST['delete_slots'] as $slot) {
             list($date, $time, $band, $mode) = explode('|', $slot);
-			log_msg(DEBUG_DEBUG, "processing delete: $date $time $band $mode $logged_in_call");
+			log_msg(DEBUG_VERBOSE, "processing delete: $date $time $band $mode $logged_in_call");
 			$deleted = db_delete_schedule_line($db_conn, $date, $time, $band, $mode, $logged_in_call);
-			log_msg(DEBUG_DEBUG, "delete result: " . $deleted);
+			log_msg(DEBUG_VERBOSE, "delete result: " . $deleted);
         }
 
 		// trigger the display of the schedule asif the most recently used show button
@@ -209,7 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 					$name = $row ? $row['op_name'] : null;
 					$band = $row ? $row['band'] : null;
 					$mode = $row ? $row['mode'] : null;
-					log_msg(DEBUG_DEBUG, "Testing schedule line on filters: $date $time $band $mode");
+					log_msg(DEBUG_VERBOSE, "Testing schedule line on filters: $date $time $band $mode");
 					$assigned_call = $row['assigned_call'] ?? '';
 					$club_station = $row['club_station'] ?? '';
 					$notes = $row['notes'] ?? '';
@@ -220,7 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 					// skip lines for other ops when showing only mine
 					if (($mine_only || $mine_plus_open) && !$this_is_me) continue;
 					// gather what's left to be displayed in the table
-					log_msg(DEBUG_DEBUG, "Schedule line was not filtered");
+					log_msg(DEBUG_VERBOSE, "Schedule line was not filtered");
 					$table_rows[] = compact('date', 'time', 'band', 'mode', 'assigned_call', 'op', 'name', 'club_station', 'notes');
 				}
 				// add an unscheduled row if current call is not scheduled in this slot, for the possibility of adding "me",
