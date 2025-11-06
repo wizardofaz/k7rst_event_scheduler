@@ -5,13 +5,18 @@
 declare(strict_types=1);
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/logging.php';
 
 csrf_start_session_if_needed();
-$ident = auth_get_identity();
-$authed = auth_is_authenticated();
-$browse = auth_is_browse_only();
+// Who is it, what can they do?
+$logged_in_call 	= auth_get_callsign();
+$logged_in_name 	= auth_get_name();
+$edit_authorized 	= auth_is_authenticated();
+$browse_authorized 	= auth_is_browse_only();
+$admin_authorized 	= auth_is_admin();
 
-if (empty($ident)) {
+if (!auth_get_callsign()) {
+    log_msg(DEBUG_INFO, "no logged in call, nothing to show");
     header('Location: index.php');
     exit;
 }
@@ -21,6 +26,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['action'] ?? '') ==
         http_response_code(403);
         exit('Invalid logout request.');
     }
+    log_msg(DEBUG_DEBUG, "logout requested with POST");
     auth_logout();
     header('Location: index.php');
     exit;
@@ -44,14 +50,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['action'] ?? '') ==
 <body>
 <div class="card">
   <h2>Session OK</h2>
-  <?php if ($authed): ?>
-    <div class="banner ok">Authenticated as <strong><?= htmlspecialchars($ident['callsign']) ?></strong> for <strong><?= htmlspecialchars($ident['event']) ?></strong>.</div>
-  <?php elseif ($browse): ?>
-    <div class="banner ro">Browsing only as <strong><?= htmlspecialchars($ident['callsign']) ?></strong> for <strong><?= htmlspecialchars($ident['event']) ?></strong>.</div>
+  <?php if ($edit_authorized): ?>
+    <div class="banner ok">Authenticated as <strong><?= htmlspecialchars($logged_in_call) ?></strong> for <strong><?= htmlspecialchars(EVENT_NAME) ?></strong>.</div>
+  <?php elseif ($browse_authorized): ?>
+    <div class="banner ro">Browsing only as <strong><?= htmlspecialchars($logged_in_call) ?></strong> for <strong><?= htmlspecialchars(EVENT_NAME) ?></strong>.</div>
   <?php endif; ?>
 
   <h3>Session payload</h3>
-  <pre><?= htmlspecialchars(print_r($ident, true)) ?></pre>
+  <pre><?= htmlspecialchars(print_r(auth_dump_payload(), true)) ?></pre>
 
   <form method="post">
     <?= csrf_input('logout') ?>

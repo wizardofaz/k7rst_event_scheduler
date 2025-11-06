@@ -17,13 +17,11 @@ if (isset($_GET['logout'])) {
 $session_timeout_minutes = round(ini_get('session.gc_maxlifetime') / 60);
 
 // Who is it, what can they do?
-$identify 			= $_SESSION['identify'] 	?? [];
-$auth 				= $_SESSION['cactus_auth']	?? [];
-$logged_in_call 	= $identify['callsign'] 	?? '';
-$logged_in_name 	= $identify['name'] 		?? '';
-$edit_authorized 	= (($auth['role'] ?? '') == 'auth');
-$browse_authorized 	= (($auth['role'] ?? '') == 'browse');
-$admin_authorized 	= ((int)($auth['is_admin'] ?? 0) === 1);
+$logged_in_call 	= auth_get_callsign();
+$logged_in_name 	= auth_get_name();
+$edit_authorized 	= auth_is_authenticated();
+$browse_authorized 	= auth_is_browse_only();
+$admin_authorized 	= auth_is_admin();
 
 // Initialize variables
 $start_date = '';

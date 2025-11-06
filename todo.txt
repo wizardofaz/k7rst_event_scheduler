@@ -1,7 +1,9 @@
 Scheduler todos
 
 Bugs:
-no error is given for wrong password
+(minor bug) if show my schedule and open slots, slots that are full (all 8 calls in use) still show as open to me, but fail if I try to use 
+(minor bug) if I'm logged in and go back to the index page without logging out, I can't get back to editing. 
+$errors and $messages in index.php don't get displayed
 when switch events, user remains logged in
 when log out index page doesn't do the event selected unless you change it
 broken logic if starting scheduler.php?event=xxx (low priority fix)
@@ -14,7 +16,6 @@ expose public search for all event wavelogs
 generalize the code that references index.php explicitly 
 generalize the code that references n7dz.net explicitly
 add "who's on now" button that is quick show of next 4 hours
-move login to index.php, require login with pw (no more un-authenticated users)
 add admin mode as option on index.php (coupled with adding login option)
 add browse-only on sheduler without login
 add event_admin.php link to index for authorized users
@@ -48,6 +49,8 @@ handle enter key to show just my schedule, or maybe just log in
 admin screen, admin users
 
 Done:
+move login to index.php, require login with pw (no more un-authenticated users)
+no error is given for wrong password
 days of week "ALL" should be first not last
 Test slot full 
 Flag for club station required (support for field day) 

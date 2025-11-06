@@ -30,7 +30,7 @@ require_once __DIR__ . '/config.php';
 <h1>How Do I Use This?</h1>
 
 <p>This page will help you understand how to use the <?= htmlspecialchars(EVENT_DISPLAY_NAME) ?> Operator Scheduling Tool 
-to sign up for operating time during the special event.</p>
+to sign up for operating time during the event.</p>
 <p><strong>Tip: </strong>There are pop-up help message boxes activated by hovering your 
 mouse over various parts of the screen. Hopefully these are helpful, but if one of them
 covers where you're trying to read or type, move the mouse somewhere else on the screen 
@@ -38,10 +38,10 @@ to make it go away.</p>
 
 <h2>1. Signing In</h2>
 <ul>
-    <li>Enter your <strong>callsign</strong> and <strong>name</strong> at the top of the page.</li>
-    <li>If you'd like to protect your schedule with a password, enter it. Once used, you’ll need it in the future.</li>
-	<li><strong>Note: </strong>The password only protects against others deleting or adding to your schedule. 
-		Browsing the schedule is not secured.</li>
+    <li>On the login page, select an event. To just browse the existing schedule, click the <strong>Browse</strong> button.</li>
+    <li>If you want to be able to add or edit your schedule, enter callsign, name, and password, then click <strong>Edit</strong>.</li>
+    <li><strong>Note:</strong>The first time you use the scheduling system, entering a password will create the account.</li>
+	<li><strong>Note: </strong>The password only protects against others deleting or adding to your schedule. Browsing the schedule is not secured.</li>
 </ul>
 
 <h2>2. Finding Available Slots</h2>

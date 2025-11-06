@@ -33,37 +33,37 @@ require_once __DIR__ . '/event_db.php';
 
 
 // --- Event resolution: session-sticky; URL only sets it on first arrival ---
-$eventFromSess  = $_SESSION['event'] ?? null;
+$eventFromSess  = auth_get_event();
 $eventFromUrl   = isset($_GET['event']) ? trim((string)$_GET['event']) : null;
 
 $here     = basename($_SERVER['SCRIPT_NAME'] ?? '');
 $isIndex  = ($here === 'index.php');
 
 // Build valid set once
-$names = array_column(list_events_from_master_with_status(), 'event_name');
-$isValidUrlEvent = $eventFromUrl && in_array($eventFromUrl, $names, true);
+$event_names = array_column(list_events_from_master_with_status(), 'event_name');
+$isValidUrlEvent = $eventFromUrl && in_array($eventFromUrl, $event_names, true);
 
 // 1) If NO session event yet and ?event= is valid → adopt on ANY page (first-touch)
 if (!$eventFromSess && $isValidUrlEvent) {
-    $_SESSION['event'] = $eventFromUrl;
-    log_msg("DEBUG_DEBUG", "no session event, url event is valid, session set to ".$_SESSION['event']);
+    $auth_set_event($eventFromUrl);
+    log_msg("DEBUG_DEBUG", "no session event, url event is valid, session set to ".auth_get_event());
 }
 
 // 2) If already have a session event, only allow URL-based switching on index.php
 if ($eventFromSess && $isValidUrlEvent && $isIndex && $eventFromUrl !== $eventFromSess) {
-    $_SESSION['event'] = $eventFromUrl;
-    log_msg("DEBUG_DEBUG", "have session event, url event is valid, here=index, switching session to ".$_SESSION['event']);
+    $auth_set_event($eventFromUrl);
+    log_msg("DEBUG_DEBUG", "have session event, url event is valid, here=index, switching session to ".auth_get_event());
 }
 
 // 3) If this is index.php, allow defaulting to first event in list
 // If not index, valid event must be given on url. 
-if (!isset($_SESSION['event']) && $here == 'index.php' && isset($names[0])) {
-    $_SESSION['event'] = $names[0];
-    log_msg("DEBUG_DEBUG", "no session event, we are index.php, allow default, session set to ".$_SESSION['event']);
+if (!auth_get_event() && $isIndex && isset($event_names[0])) {
+    auth_set_event($event_names[0]);
+    log_msg("DEBUG_DEBUG", "no session event, we are index.php, allow default, session set to ".auth_get_event());
 }
 
 // 4) Finally if there is still no event chosen, abort
-if (!isset($_SESSION['event'])) {
+if (!auth_get_event()) {
     echo "No valid event could be determined from URL or current session state.";
     log_msg("DEBUG_DEBUG", "no event could be chosen, aborting");
     exit;
@@ -82,13 +82,13 @@ if (isset($_GET['event'])) {
 }
 
 // Resolve final event 
-$eventName = $_SESSION['event'];
+$eventName = auth_get_event();
 define('EVENT_NAME', $eventName);
-log_msg("DEBUG_DEBUG", "event resolution resulted in ".$_SESSION['event']);
+log_msg("DEBUG_DEBUG", "event resolution resulted in " . $eventName);
 
 // Load per-event constants; handle invalid without loops
 if ($eventName !== '' && !load_event_config_constants(EVENT_NAME)) {
-    unset($_SESSION['event']);
+    auth_set_event(null);
     if ($here !== 'index.php') {
         header('Location: index.php?invalid_event=' . urlencode((string)EVENT_NAME));
         exit;

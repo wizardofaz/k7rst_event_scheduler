@@ -6,16 +6,19 @@ require_once __DIR__ . '/config.php'; // pulls in master DB constants (MASTER_SE
 require_once __DIR__ . '/master.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/logging.php';
 
 csrf_start_session_if_needed();
 
 $errors = [];
 $messages = [];
 
+// $event_explicit indicates a chosen rather than defaulted event
+$event_explicit = !empty($_SESSION['event_explicit']);
+
 // Pull events list (name + description), and find the selected description
 $events_list = list_events_from_master_with_status(); // [event_name, event_description, status]
-
-$selected_event = defined('EVENT_NAME') ? EVENT_NAME : ($_SESSION['identify']['event'] ?? '');
+$selected_event = ($event_explicit && defined('EVENT_NAME')) ? EVENT_NAME : '';
 $selected_desc = '';
 foreach ($events_list as $ev) {
     if ($ev['event_name'] === $selected_event) {
@@ -24,20 +27,11 @@ foreach ($events_list as $ev) {
     }
 }
 
-$event_explicit = !empty($_SESSION['event_explicit']);
-$selected_event = ($event_explicit && defined('EVENT_NAME')) ? EVENT_NAME : '';
-
 // Feature flags (only valid once config.php has loaded event constants)
 $hasSched  = defined('EVENT_SCHEDULER_URL') && EVENT_SCHEDULER_URL !== '';
 $hasLogger = defined('EVENT_LOGGER_URL')    && EVENT_LOGGER_URL    !== '';
 $hasAdmin  = defined('EVENT_ADMIN_URL')     && EVENT_ADMIN_URL     !== '';
 if (!$event_explicit) { $hasSched = $hasLogger = $hasAdmin = false; }
-
-// --- Helpers ----------------------------------------------------------------
-
-if (!isset($_SESSION['identify'])) {
-    $_SESSION['identify'] = ['event'=>'', 'callsign'=>'', 'name'=>'', 'status'=>null];
-}
 
 // --- POST handler ------------------------------------------------------------
 
@@ -49,8 +43,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         // Don’t mutate state; render page with error.
         exit($msg);
     }
-    
+
     $action = $_POST['action'] ?? '';
+    log_msg(DEBUG_INFO, "action is $action");
 
     if (in_array($action, ['identify','login','browse'], true)) {
         if (!csrf_validate($_POST['_csrf_key'] ?? null, $_POST['_csrf'] ?? null)) {
@@ -63,12 +58,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $new_event = trim($_POST['event'] ?? '');
         if ($new_event === '') {
             // User intentionally selected the blank option: clear selection
-            unset($_SESSION['identify']['event'], $_SESSION['event'], $_SESSION['identify']['status']);
+            auth_initialize();
             $_SESSION['event_explicit'] = false;
         } else {
-            $_SESSION['identify']['event'] = $new_event;
-            $_SESSION['event'] = $new_event; // if config.php reads from here
-            $_SESSION['identify']['status'] = null;
+            auth_set_event($new_event);
             $_SESSION['event_explicit'] = true;
         }
         header('Location: index.php'); // PRG so config.php can re-define constants
@@ -77,18 +70,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 
     if ($action === 'browse') {
         if (!$selected_event || !$hasSched) {
+            log_msg(DEBUG_INFO, "Scheduler not configured for $selected_event");
             $errors[] = 'Scheduler not configured for this event.';
         } else {
             // callsign/name optional for browse; keep if provided:
-            $callsign = strtoupper(trim($_POST['callsign'] ?? ($_SESSION['identify']['callsign'] ?? '')));
-            $name     = trim($_POST['name'] ?? ($_SESSION['identify']['name'] ?? ''));
+            $callsign = strtoupper(trim($_POST['callsign'] ?? (auth_get_callsign())));
+            $name     = trim($_POST['name'] ?? (auth_get_name()));
             if ($callsign === '') $callsign = 'BROWSE';
             if ($name === '') $name = 'Browse';
 
-            // refresh identify cache
-            $_SESSION['identify']['callsign'] = $callsign;
-            $_SESSION['identify']['name']     = $name;
+            log_msg(DEBUG_INFO, "Launching browse-schedule for $selected_event to URL " . EVENT_SCHEDULER_URL);
 
+            // refresh identify cache
             auth_set_browse($selected_event, $callsign, $name);
             header('Location: ' . EVENT_SCHEDULER_URL);
             exit;
@@ -104,8 +97,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $errors[] = 'Please enter event, callsign, and name.';
         } else {
             $status = auth_status_for_callsign($event, $callsign); // 'exists' | 'new'
-            $_SESSION['identify'] = compact('event','callsign','name');
-            $_SESSION['identify']['status'] = $status;
+            $auth_set_event($event);
+            $auth_set_callsign($callsign);
+            $auth_set_name($name);
             if ($status === 'exists') {
                 $messages[] = 'Password exists for this callsign. Enter it to continue.';
             } else {
@@ -154,13 +148,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 }
 
 $events   = list_events_from_master_with_status();
-$identify = $_SESSION['identify'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title><?php echo htmlspecialchars($identify['event'] ?: ''); ?> Radio Society of Tucson Event Selection</title>
+  <title><?php echo htmlspecialchars(auth_get_event()); ?> Radio Society of Tucson Event Selection</title>
   <link rel="icon" type="image/png" sizes="32x32" href="img/cropped-RST-Logo-1-32x32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="img/cropped-RST-Logo-1-180x180.png">
   <link rel="icon" href="img/cropped-RST-Logo-1-32x32.jpg">
@@ -201,12 +194,12 @@ $identify = $_SESSION['identify'];
       <div class="msg"><?= htmlspecialchars($m) ?></div>
     <?php endforeach; ?>
 
-    <h1 style="margin-top:0;">Select an Event</h1>
+    <strong>Event selection and log-in<a href="how-do-i-use-this.php" target="_blank">&nbsp;&nbsp;&nbsp;(How do I use this?)</a></strong>
     <p class="muted" style="margin-top:4px;">Choose an event. Once selected, browse/log in options will appear below.</p>
 
     <?php
       // Event/description from config/session
-      $selected_event = defined('EVENT_NAME') ? EVENT_NAME : ($_SESSION['identify']['event'] ?? '');
+      $selected_event = defined('EVENT_NAME') ? EVENT_NAME : ($auth_get_event());
 
       $events_list = list_events_from_master_with_status();
       $selected_desc = '';
@@ -262,13 +255,13 @@ $identify = $_SESSION['identify'];
 
       <!-- (2b) Callsign/Name (progressive: visible after event; password waits for probe) -->
       <?php
-        $calls  = $_SESSION['identify']['callsign'] ?? '';
-        $name   = $_SESSION['identify']['name'] ?? '';
+        $callsign = auth_get_callsign();
+        $name     = auth_get_name();
       ?>
       <div id="secIdentity" class="row" style="margin-top:16px;">
         <div>
           <label for="callsign"><strong>Callsign</strong></label>
-          <input id="callsign" name="callsign" value="<?= htmlspecialchars($calls) ?>" autocomplete="username">
+          <input id="callsign" name="callsign" value="<?= htmlspecialchars($callsign) ?>" autocomplete="username">
         </div>
         <div>
           <label for="name"><strong>Name</strong></label>

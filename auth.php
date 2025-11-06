@@ -3,6 +3,8 @@
 declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/master.php';
+require_once __DIR__ . '/event_db.php';
 
 
 /**
@@ -14,36 +16,6 @@ require_once __DIR__ . '/csrf.php';
  */
 
 
-function auth_norm_call(string $call): string {
-    return strtoupper(trim($call));
-}
-
-/** 'exists' or 'new' */
-function auth_status_for_callsign(string $event, string $callsign): string {
-    $db = auth_event_mysqli($event);
-    $call = auth_norm_call($callsign);
-    $stmt = $db->prepare('SELECT id FROM operator_passwords WHERE op_call = ? LIMIT 1');
-    $stmt->bind_param('s', $call);
-    $stmt->execute();
-    $exists = (bool)$stmt->get_result()->fetch_row();
-    $stmt->close();
-    $db->close();
-    return $exists ? 'exists' : 'new';
-}
-
-/** Browse-only; sets session */
-function auth_set_browse(string $event, string $callsign, string $name): void {
-    csrf_start_session_if_needed();
-    $_SESSION['cactus_auth'] = [
-        'event'    => trim($event),
-        'callsign' => auth_norm_call($callsign),
-        'name'     => trim($name),
-        'role'     => 'browse',
-        'is_admin' => 0,
-        'since'    => gmdate('c'),
-    ];
-}
-
 /**
  * Login or create (dual-mode verification):
  * - If password_hash present → verify with password_verify()
@@ -51,7 +23,7 @@ function auth_set_browse(string $event, string $callsign, string $name): void {
  * On create: writes both op_password (for now) and password_hash (so we’re future-ready).
  */
 function auth_login_or_create(string $event, string $callsign, string $name, string $password): bool {
-    $db   = auth_event_mysqli($event);
+    $db = get_event_db_connection_from_master($event);
     $call = auth_norm_call($callsign);
     $name = trim($name);
     $pw   = (string)$password;
@@ -120,18 +92,6 @@ function auth_login_or_create(string $event, string $callsign, string $name, str
     }
 }
 
-function auth_is_authenticated(): bool {
-    csrf_start_session_if_needed();
-    return isset($_SESSION['cactus_auth']) && ($_SESSION['cactus_auth']['role'] ?? null) === 'auth';
-}
-function auth_is_browse_only(): bool {
-    csrf_start_session_if_needed();
-    return isset($_SESSION['cactus_auth']) && ($_SESSION['cactus_auth']['role'] ?? null) === 'browse';
-}
-function auth_get_identity(): array {
-    csrf_start_session_if_needed();
-    return $_SESSION['cactus_auth'] ?? [];
-}
 function auth_logout(): void {
     csrf_start_session_if_needed();
     $_SESSION = [];
@@ -156,4 +116,93 @@ function auth_logout(): void {
     header('Location: ' . $dest, true, 302);
     exit;
 
+}
+
+function auth_initialize(): void {
+    // called by csrf_start_session_if_needed so DON'T call that!! (recursion)
+    if (!isset($_SESSION['cactus_auth'])) {
+        $_SESSION['cactus_auth'] = [
+            'event'    => '',
+            'callsign' => '',
+            'name'     => '',
+            'role'     => '',
+            'is_admin' => 0,
+            'since'    => gmdate('c'),
+        ];
+    }
+}
+
+function auth_get_identity(): array {
+    csrf_start_session_if_needed();
+    return $_SESSION['cactus_auth'];
+}
+
+function auth_norm_call(string $call): string {
+    return strtoupper(trim($call));
+}
+
+/** 'exists' or 'new' */
+function auth_status_for_callsign(string $event, string $callsign): string {
+    $db = get_event_db_connection_from_master($event);
+    $call = auth_norm_call($callsign);
+    $stmt = $db->prepare('SELECT id FROM operator_passwords WHERE op_call = ? LIMIT 1');
+    $stmt->bind_param('s', $call);
+    $stmt->execute();
+    $exists = (bool)$stmt->get_result()->fetch_row();
+    $stmt->close();
+    $db->close();
+    return $exists ? 'exists' : 'new';
+}
+
+/** Browse-only; sets session */
+function auth_set_browse(string $event, string $callsign, string $name): void {
+    csrf_start_session_if_needed();
+    $_SESSION['cactus_auth'] = [
+        'event'    => trim($event),
+        'callsign' => auth_norm_call($callsign),
+        'name'     => trim($name),
+        'role'     => 'browse',
+        'is_admin' => 0,
+        'since'    => gmdate('c'),
+    ];
+}
+
+function auth_is_browse_only(): bool {
+    csrf_start_session_if_needed();
+    return isset($_SESSION['cactus_auth']) && ($_SESSION['cactus_auth']['role'] ?? null) === 'browse';
+}
+
+function auth_is_authenticated(): bool {
+    csrf_start_session_if_needed();
+    return isset($_SESSION['cactus_auth']) && ($_SESSION['cactus_auth']['role'] ?? null) === 'auth';
+}
+
+function auth_is_admin(): bool {
+    csrf_start_session_if_needed();
+    return isset($_SESSION['cactus_auth']) && (($_SESSION['cactus_auth']['is_admin'] ?? 0) === 1);
+}
+
+function auth_get_callsign(): string {
+    csrf_start_session_if_needed();
+    return isset($_SESSION['cactus_auth']) ? ($_SESSION['cactus_auth']['callsign'] ?? null) : null;
+}
+
+function auth_get_name(): string {
+    csrf_start_session_if_needed();
+    return isset($_SESSION['cactus_auth']) ? ($_SESSION['cactus_auth']['name'] ?? null) : null;
+}
+
+function auth_get_event(): string {
+    csrf_start_session_if_needed();
+    return isset($_SESSION['cactus_auth']) ? ($_SESSION['cactus_auth']['event'] ?? null) : null;
+}
+
+function auth_set_event(string $e) {
+    csrf_start_session_if_needed();
+    $_SESSION['cactus_auth']['event'] = $e;
+}
+
+// only used in debugging 
+function auth_dump_payload() {
+    return $_SESSION['cactus_auth'];
 }
