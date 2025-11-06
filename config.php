@@ -46,13 +46,13 @@ $isValidUrlEvent = $eventFromUrl && in_array($eventFromUrl, $event_names, true);
 
 // 1) If NO session event yet and ?event= is valid → adopt on ANY page (first-touch)
 if (!$eventFromSess && $isValidUrlEvent) {
-    $auth_set_event($eventFromUrl);
+    auth_set_event($eventFromUrl);
     log_msg("DEBUG_VERBOSE", "no session event, url event is valid, session set to ".auth_get_event());
 }
 
 // 2) If already have a session event, only allow URL-based switching on index.php
 if ($eventFromSess && $isValidUrlEvent && $isIndex && $eventFromUrl !== $eventFromSess) {
-    $auth_set_event($eventFromUrl);
+    auth_set_event($eventFromUrl);
     log_msg("DEBUG_VERBOSE", "have session event, url event is valid, here=index, switching session to ".auth_get_event());
 }
 
