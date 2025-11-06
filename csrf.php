@@ -3,10 +3,12 @@
 // security around login and db edits
 //
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/logging.php';
 
 // use in place of any session_start
 function csrf_start_session_if_needed(): void {
     if (session_status() !== PHP_SESSION_ACTIVE) {
+        log_msg(DEBUG_VERBOSE, "session_start from csrf_start_session_if_needed");
         // Strengthen the session cookie a bit
         session_set_cookie_params([
             'secure'   => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
@@ -14,7 +16,6 @@ function csrf_start_session_if_needed(): void {
             'samesite' => 'Lax', // helpful, but NOT a substitute for tokens
         ]);
         session_start();
-        auth_initialize();
     }
     if (!isset($_SESSION['csrf'])) {
         $_SESSION['csrf'] = [];

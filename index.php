@@ -58,10 +58,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     }
 
     if ($action === 'set_event') {
+        auth_initialize();
         $new_event = trim($_POST['event'] ?? '');
+        log_msg(DEBUG_VERBOSE, "set_event for new event = \"$new_event\"");
         if ($new_event === '') {
             // User intentionally selected the blank option: clear selection
-            auth_initialize();
+            auth_set_new_event(''); // un-authenticates the callsign
             $_SESSION['event_explicit'] = false;
         } else {
             auth_set_event($new_event);

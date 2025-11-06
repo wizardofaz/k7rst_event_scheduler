@@ -31,7 +31,9 @@ require_once __DIR__ . '/util.php';
 require_once $secrets_path; // master database password lives here
 require_once __DIR__ . '/master.php';
 require_once __DIR__ . '/event_db.php';
+require_once __DIR__ . '/auth.php';
 
+auth_initialize_if_absent();
 
 // --- Event resolution: session-sticky; URL only sets it on first arrival ---
 $eventFromSess  = auth_get_event();

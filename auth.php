@@ -118,11 +118,13 @@ function auth_logout(): void {
 
 }
 
-function auth_initialize(): void {
-    // need the line below because of a bug not understoor yet
-    if (isset($_SESSION['cactus_auth'])) return; // DEBUG TEST
+function auth_initialize_if_absent(): void {
+    if (!isset($_SESSION['cactus_auth'])) auth_initialize();
+}
 
+function auth_initialize(): void {
     // called by csrf_start_session_if_needed so DON'T call that!! (recursion)
+    log_msg(DEBUG_VERBOSE, "auth_initialize called");
     $_SESSION['cactus_auth'] = [
         'event'    => '',
         'callsign' => '',
@@ -188,17 +190,17 @@ function auth_is_admin(): bool {
 
 function auth_get_callsign(): string {
     csrf_start_session_if_needed();
-    return isset($_SESSION['cactus_auth']) ? ($_SESSION['cactus_auth']['callsign'] ?? null) : null;
+    return isset($_SESSION['cactus_auth']) ? ($_SESSION['cactus_auth']['callsign'] ?? "") : "";
 }
 
 function auth_get_name(): string {
     csrf_start_session_if_needed();
-    return isset($_SESSION['cactus_auth']) ? ($_SESSION['cactus_auth']['name'] ?? null) : null;
+    return isset($_SESSION['cactus_auth']) ? ($_SESSION['cactus_auth']['name'] ?? "") : "";
 }
 
 function auth_get_event(): string {
     csrf_start_session_if_needed();
-    return isset($_SESSION['cactus_auth']) ? ($_SESSION['cactus_auth']['event'] ?? null) : null;
+    return isset($_SESSION['cactus_auth']) ? ($_SESSION['cactus_auth']['event'] ?? "") : "";
 }
 
 // changing event nullifies logged in status
