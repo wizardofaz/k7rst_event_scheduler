@@ -1,6 +1,6 @@
 # Ignore backup files like xxx.php.backupxxx
 *.php.backup*
-*.php.save*
+*.php.*save*
 *.bak
 *.tmp
 *~

@@ -97,9 +97,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $errors[] = 'Please enter event, callsign, and name.';
         } else {
             $status = auth_status_for_callsign($event, $callsign); // 'exists' | 'new'
-            $auth_set_event($event);
-            $auth_set_callsign($callsign);
-            $auth_set_name($name);
+            auth_set_event($event);
+            auth_set_callsign($callsign);
+            auth_set_name($name);
             if ($status === 'exists') {
                 $messages[] = 'Password exists for this callsign. Enter it to continue.';
             } else {

@@ -119,22 +119,25 @@ function auth_logout(): void {
 }
 
 function auth_initialize(): void {
+    if (isset($_SESSION['cactus_auth'])) return; // DEBUG TEST
+
     // called by csrf_start_session_if_needed so DON'T call that!! (recursion)
-    if (!isset($_SESSION['cactus_auth'])) {
-        $_SESSION['cactus_auth'] = [
-            'event'    => '',
-            'callsign' => '',
-            'name'     => '',
-            'role'     => '',
-            'is_admin' => 0,
-            'since'    => gmdate('c'),
-        ];
-    }
+    $_SESSION['cactus_auth'] = [
+        'event'    => '',
+        'callsign' => '',
+        'name'     => '',
+        'role'     => '',
+        'is_admin' => 0,
+        'since'    => gmdate('c'),
+    ];
 }
 
-function auth_get_identity(): array {
-    csrf_start_session_if_needed();
-    return $_SESSION['cactus_auth'];
+function auth_clear_authentication(): void {
+    if (isset($_SESSION['cactus_auth'])) {
+        $_SESSION['cactus_auth']['role'] = '';
+        $_SESSION['cactus_auth']['is_admin'] = 0;
+        $_SESSION['cactus_auth']['since'] = gmdate('c');
+    }
 }
 
 function auth_norm_call(string $call): string {
@@ -197,9 +200,26 @@ function auth_get_event(): string {
     return isset($_SESSION['cactus_auth']) ? ($_SESSION['cactus_auth']['event'] ?? null) : null;
 }
 
+// changing event nullifies logged in status
 function auth_set_event(string $e) {
     csrf_start_session_if_needed();
+    if ($e === $_SESSION['cactus_auth']['event']) return;
+    auth_clear_authentication();
     $_SESSION['cactus_auth']['event'] = $e;
+}
+
+// changing callsign nullifies logged in status
+function auth_set_callsign(string $c) {
+    csrf_start_session_if_needed();
+    if ($c === $_SESSION['cactus_auth']['callsign']) return;
+    auth_clear_authentication();
+    $_SESSION['cactus_auth']['callsign'] = $c;
+}
+
+// but changing name is harmless
+function auth_set_name(string $n) {
+    csrf_start_session_if_needed();
+    $_SESSION['cactus_auth']['name'] = $n;
 }
 
 // only used in debugging 
