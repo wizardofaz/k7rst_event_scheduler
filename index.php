@@ -200,7 +200,7 @@ $events   = list_events_from_master_with_status();
       <div class="msg"><?= htmlspecialchars($m) ?></div>
     <?php endforeach; ?>
 
-    <strong>Event selection and log-in<a href="how-do-i-use-this.php" target="_blank">&nbsp;&nbsp;&nbsp;(How do I use this?)</a></strong>
+    <h2>Event selection and log-in &nbsp;&nbsp;&nbsp;<a href="how-do-i-use-this.php" target="_blank">(How do I use this?)</a></h2>
     <p class="muted" style="margin-top:4px;">Choose an event. Once selected, browse/log in options will appear below.</p>
 
     <?php
@@ -291,7 +291,7 @@ $events   = list_events_from_master_with_status();
       </div>
 
       <!-- (2c) Secured actions (hidden until callsign probed; login + go) -->
-      <div id="secActions" class="actions" style="<?= $force_pw ? 'display:flex' : 'display:none; margin-top:12px;' ?>; gap:14px; flex-wrap:wrap;"> 
+      <div id="secActions" class="actions" style="<?= $force_pw ? 'display:flex' : 'display:none; margin-top:12px;' ?> gap:14px; flex-wrap:wrap;"> 
         <?php if ($hasSched): ?>
           <button id="btnEdit" class="btn primary" type="button">Edit Schedule</button>
         <?php else: ?>
