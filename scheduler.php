@@ -406,7 +406,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		
 		<!-- See JavaScript handlers at the bottom for how dynamic checkbox behavior is handled in these two <div> sections -->
 		<div class="section">
-			<strong>What parts of the day would you like to view?</strong><br>
+			<strong>What parts of the day would you like to view (UTC)?</strong><br>
 			<?php
 			foreach (TIME_OPTS as $val => $label): ?>
 				<?php if (strtoupper($val) === 'ALL'): ?>
@@ -418,7 +418,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		</div>
 
 		<div class="section">
-		<strong>Which days of the week?</strong><br>
+		<strong>Which days of the week? (UTC)</strong><br>
 			<?php
 			foreach (DAY_OPTS as $val => $label): ?>
 				<?php if (strtoupper(strval($val)) === 'ALL'): ?>
@@ -521,7 +521,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			<td><?= $fmt_dt['dateUTC'] ?></td>
 			<td><?= $fmt_dt['timeUTC'] ?></td>
 			<td><?= $fmt_dt['timeLocal'] ?></td>
-			<td><?= $assigned_call ?></td>
+			<?php $link = build_public_log_link(ASSIGNED_CALL: $assigned_call); ?>
+			<td>
+			<?php if ($link !== ''): ?>
+				<a href="<?= htmlspecialchars($link, ENT_QUOTES) ?>" target="_blank" rel="noopener">
+				<?= htmlspecialchars($assigned_call ?? '') ?>
+				</a>
+			<?php else: ?>
+				<?= htmlspecialchars($assigned_call ?? '') ?>
+			<?php endif; ?>
+			</td>
 			<td>
 				<?php if ($edit_authorized && $status === 'Open'): ?>
 					<!-- Dropdown for Band -->
