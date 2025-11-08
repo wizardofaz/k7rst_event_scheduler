@@ -105,13 +105,6 @@ if ($authorized) {
     echo "<form method='post' style='display:inline;'>
     <strong>$op_call</strong> logged in <button name='logout'>Logout</button>
     </form><br><br>";
-/* } else {
-    echo "<form method='post'>
-        Call: <input name='call' value='" . htmlspecialchars($op_call) . "'>
-        Name: <input name='name' value='" . htmlspecialchars($op_name) . "'>
-        Password: <input name='password' type='password'>
-        <button type='submit'>Login</button>
-    </form>"; */
 }
 
 echo "<form method='get'>
