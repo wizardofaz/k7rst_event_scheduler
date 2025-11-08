@@ -3,7 +3,7 @@
 //define('DEBUG_ONLY_GLOB', ['*']); // to enable all debug logging
 
 // list of specific files to include
-define('DEBUG_ONLY_FILES', ['scheduler.php', 'index.php', 'auth.php']); 
+define('DEBUG_ONLY_FILES', ['scheduler.php']); 
 
 // wildcard specs for files to include
 //define('DEBUG_ONLY_GLOB', ['*scheduler*.php']); 

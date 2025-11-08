@@ -14,12 +14,15 @@ require_once __DIR__ . '/csrf.php';
 
 csrf_start_session_if_needed();
 
-define('APP_VERSION', '1.0.10.28 2025-10-28');
+define('APP_VERSION', '1.0.10.28 2025-11-08');
 
+// allow setting DEBUG_LEVEL differently when 
+// running from .alpha directory
+// see also dubug_list.php for file restrictions on debug prints
 if (strpos(__dir__ . '/', '.alpha/') !== false) {
     define('DEVELOPER_FLAG', true);
     define('CODE_VERSION', 'alpha');
-    define('DEBUG_LEVEL', DEBUG_VERBOSE);
+    define('DEBUG_LEVEL', DEBUG_DEBUG);
 } else {
     define('CODE_VERSION', 'beta');
     define('DEBUG_LEVEL', DEBUG_ERROR);

@@ -1,6 +1,7 @@
 Scheduler todos
 
 Bugs:
+WFD can't add more slots same time and date (see Don email 11/07 9:48)
 (minor bug) if show my schedule and open slots, slots that are full (all 8 calls in use) still show as open to me, but fail if I try to use 
 (minor bug) if I'm logged in and go back to the index page without logging out, I can't get back to editing. 
 $errors and $messages in index.php don't get displayed

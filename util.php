@@ -112,3 +112,39 @@ function _relative_path(string $fromDir, string $toPath): string {
     $rel = implode('/', array_merge($up, $down));
     return ($rel === '' ? './' : $rel);
 }
+
+/**
+ * @param string $date  MySQL DATE in UTC (e.g., "2025-11-20")
+ * @param string $time  MySQL TIME in UTC (e.g., "02:00:00" or "02:00")
+ * @param string|null $localTz IANA zone for local display (defaults to LOCAL_TIMEZONE or America/Phoenix)
+ * @return array{dateUTC:string,timeUTC:string,timeLocal:string}
+ */
+function format_display_date_time(string $date, string $time, ?string $localTz = null): array
+{
+    $tzUTC   = new DateTimeZone('UTC');
+    $tzLocal = new DateTimeZone($localTz ?: (defined('LOCAL_TIMEZONE') ? LOCAL_TIMEZONE : 'America/Phoenix'));
+    $tzLocalShort = defined('LOCAL_TIMEZONE_SHORT') ? LOCAL_TIMEZONE_SHORT : 'AZ';
+
+    // Build a UTC datetime from separate DATE and TIME fields.
+    // Accepts "HH:MM" or "HH:MM:SS".
+    $time = $time === '' ? '00:00:00' : $time;
+    $dtUtc = new DateTimeImmutable(trim("$date $time"), $tzUTC);
+
+    // Format pieces
+    $dateUTC  = $dtUtc->format('D m/d/y');   // e.g., "Thu 20-11-25"
+    $timeUTC  = $dtUtc->format('Hi\\z');     // e.g., "0200z"
+
+    $dtLocal  = $dtUtc->setTimezone($tzLocal);
+    $timeLocal = $dtLocal->format('Hi').$tzLocalShort;     // e.g., "1700AZ"
+
+    // If the local calendar date differs from UTC, append " (Ddd)"
+    if ($dtLocal->format('Y-m-d') !== $dtUtc->format('Y-m-d')) {
+        $timeLocal .= ' (' . $dtLocal->format('D') . ')';  // e.g., "1700AZ (Wed)"
+    }
+
+    return [
+        'dateUTC'   => $dateUTC,
+        'timeUTC'   => $timeUTC,
+        'timeLocal' => $timeLocal,
+    ];
+}

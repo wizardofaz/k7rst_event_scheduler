@@ -5,6 +5,7 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/logging.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/util.php';
 require_once __DIR__ . '/assigned_call.php';
 
 log_msg(DEBUG_VERBOSE, "Session start - Current session data: " . json_encode($_SESSION));
@@ -201,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($times as $time) {
 				$r = db_get_schedule_for_date_time($db_conn, $date, $time);
 				$none_are_me = true;
-				$no_schedule_for_slot = ($r->num_rows === 0);
+				$schedule_count_in_this_slot = $r->num_rows;
 				while ($r->num_rows > 0 && $row = $r->fetch_assoc()) {
 					$op = $row ? strtoupper($row['op_call']) : null;
 					$this_is_me = ($op === $logged_in_call);
@@ -213,22 +214,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 					$assigned_call = $row['assigned_call'] ?? '';
 					$club_station = $row['club_station'] ?? '';
 					$notes = $row['notes'] ?? '';
+					$filtering_this_line = false;
 					// apply band and mode filters
-					if (!in_array($band, $bands_list) || !in_array($mode, $modes_list)) continue;
+					if (!in_array($band, $bands_list) || !in_array($mode, $modes_list)) $filtering_this_line = true;
 					// skip open slots when showing only scheduled
-					if ($scheduled_only && !$op) continue;  
+					elseif ($scheduled_only && !$op) $filtering_this_line = true;  
 					// skip lines for other ops when showing only mine
-					if (($mine_only || $mine_plus_open) && !$this_is_me) continue;
-					// gather what's left to be displayed in the table
-					log_msg(DEBUG_VERBOSE, "Schedule line was not filtered");
-					$table_rows[] = compact('date', 'time', 'band', 'mode', 'assigned_call', 'op', 'name', 'club_station', 'notes');
+					elseif (($mine_only || $mine_plus_open) && !$this_is_me) $filtering_this_line = true;
+					if ($filtering_this_line) {
+						log_msg(DEBUG_VERBOSE, "Schedule line got filtered out");
+					} else {
+						// Not filtered out - put it in the table to display
+						log_msg(DEBUG_VERBOSE, "Schedule line was not filtered");
+						$table_rows[] = compact('date', 'time', 'band', 'mode', 'assigned_call', 'op', 'name', 'club_station', 'notes');
+					}
 				}
+
 				// add an unscheduled row if current call is not scheduled in this slot, for the possibility of adding "me",
 				// because we can schedule multiple ops in one slot (other mode and/or other special event callsign).
 				// Or add an open line for otherwise empty slots when "complete_schedule" is requested.
-				if (($mine_plus_open && $none_are_me) || ($complete_calendar && $no_schedule_for_slot)) {
+
+				// If we're showing open slots and I'm not in current slot, offer me an open slot here
+				$offer_open_slot = ($mine_plus_open || $complete_calendar) && $none_are_me; 
+				if ($offer_open_slot) log_msg(DEBUG_DEBUG, "tentative offer of open slot because I'm not scheduled");
+
+				// Except if event callsigns are required and all are used, 
+				// or club station is required and all are used
+				// in which case no open slot is offered.
+				if (EVENT_CALLSIGNS_REQUIRED && $schedule_count_in_this_slot >= count(EVENT_CALLSIGNS)) {
+					$offer_open_slot = false;
+					log_msg(DEBUG_DEBUG, "event callsigns all used up, no offer of open slot");
+				}
+				if (CLUB_STATION_REQUIRED && $schedule_count_in_this_slot >= count(CLUB_STATIONS)) {
+					$offer_open_slot = false;
+					log_msg(DEBUG_DEBUG, "club stations all used up, no offer of open slot");
+				}
+				if ($offer_open_slot) {
+					log_msg(DEBUG_VERBOSE, "Adding an open line for this slot");
 					$assigned_call = $band = $mode = $op = $name = $club_station = $notes = null;
 					$table_rows[] = compact('date', 'time', 'band', 'mode', 'assigned_call', 'op', 'name', 'club_station', 'notes');
+				} else {
+					log_msg(DEBUG_VERBOSE, "Won't show an open line for this slot");
 				}
             }
         }
@@ -448,7 +474,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 	<table border="1" cellpadding="5">
 		<tr>
-			<th>Select</th><th>Date</th><th>Time</th><th>Assigned Call</th><th>Band</th><th>Mode</th>
+			<th>Select</th><th>UTC Date</th><th>UTC</th><th>Local</th><th>Assigned Call</th><th>Band</th><th>Mode</th>
 			<th>Club Station</th><th>Notes</th><th>Status</th>
 		</tr>
 		<?php 
@@ -460,6 +486,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		foreach ($table_rows as $r):
 			$date = $r['date'];
 			$time = $r['time'];
+			$fmt_dt = format_display_date_time($date, $time);
 			$assigned_call = $r['assigned_call'];
 			$op = $r['op'];
 			$name = $r['name'];
@@ -491,8 +518,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 					--
 				<?php endif; ?>
 			</td>
-			<td><?= $formatted_date ?></td>
-			<td><?= $time ?></td>
+			<td><?= $fmt_dt['dateUTC'] ?></td>
+			<td><?= $fmt_dt['timeUTC'] ?></td>
+			<td><?= $fmt_dt['timeLocal'] ?></td>
 			<td><?= $assigned_call ?></td>
 			<td>
 				<?php if ($edit_authorized && $status === 'Open'): ?>
