@@ -14,6 +14,9 @@ declare(strict_types=1);
 
  Logging:
    - Uses log_msg(DEBUG_*, string) from logging.php
+
+ Testing time override example:
+ .../self_spot.php?test_utc=2025-11-20T08:05  
 */
 
 require_once __DIR__ . '/config.php';
@@ -70,6 +73,13 @@ if (empty($_SESSION['selfspot_csrf'])) {
 }
 $CSRF_TOKEN = $_SESSION['selfspot_csrf'];
 
+$DEFAULT_COMMENT = 'CACTUS Special Event';
+if (!empty($logged_in_call)) {
+    $DEFAULT_COMMENT .= ' — op ' . strtoupper($logged_in_call)
+        . (!empty($logged_in_name) ? '/' . $logged_in_name : '');
+}
+
+
 // --- Rate limit knobs ---
 const SELFSPOT_MIN_INTERVAL = 15; // seconds
 const SELFSPOT_MAX_PER_HOUR = 5;  // per session
@@ -100,7 +110,7 @@ if (!empty($_GET['test_utc'])) {
 
 // --- Schedule prefill (current hour if < :30 past; otherwise upcoming hour) ---
 $SELFSPOT_PREFILL = [
-    'event_call' => strtoupper($EVENT_CALLSIGNS[0] ?? $logged_in_call ?? 'K7RST'),
+    'event_call' => '',   // <— no default; will fill only if schedule match found
     'band'       => null,
     'mode'       => null,
     'freq_khz'   => null,
@@ -305,18 +315,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <title>CACTUS Self Spot</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 14px; color:#111; background: #fff; }
-  .card { max-width:820px; margin: 0 auto; border:1px solid #ddd; padding:14px; border-radius:8px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
-  label { display:block; margin-top:10px; font-weight:600; }
-  input[type=text], textarea, select { width:100%; padding:8px; margin-top:6px; box-sizing: border-box; font-size:14px; }
-  .row { display:flex; gap:8px; }
-  .col { flex:1; }
-  .small { font-size:13px; color:#555; }
-  button { margin-top:12px; padding:8px 12px; font-size:15px; border-radius:6px; cursor:pointer; }
-  pre { background:#f7f7f7; padding:8px; border-radius:6px; overflow:auto; }
-  .ok { border-left:4px solid #2a9d8f; padding-left:10px; }
-  .err { border-left:4px solid #e63946; padding-left:10px; }
-  .hint { font-size:13px; color:#666; margin-top:6px; }
+  :root {
+    --pad: 8px;
+    --gap: 8px;
+    --radius: 6px;
+    --border: #ddd;
+    --muted: #666;
+  }
+  html, body { height:100%; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    font-size: 14px; line-height: 1.25; color:#111; background:#fff;
+    padding: var(--pad);
+  }
+  .card {
+    max-width: 860px; margin: 0 auto;
+    border:1px solid var(--border); border-radius: var(--radius);
+    padding: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  h2 { font-size: 20px; margin: 0 0 6px 0; }
+  p.small { margin: 0 0 8px 0; color:#555; }
+
+  /* Compact messages */
+  .ok, .err {
+    margin: 6px 0 8px 0; padding: 8px 10px;
+    border-radius: var(--radius);
+    background: #f7f7f7;
+  }
+  .ok { border-left: 3px solid #2a9d8f; }
+  .err { border-left: 3px solid #e63946; }
+  .err ul { margin: 6px 0 0 18px; }
+
+  /* Form grid */
+  form { margin: 6px 0 0 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+  .grid-1 { display: grid; grid-template-columns: 1fr; gap: var(--gap); }
+
+  label { display:block; margin: 4px 0 0 0; font-weight: 600; }
+  input[type=text], textarea, select {
+    width: 100%; box-sizing: border-box;
+    padding: 6px 7px; margin-top: 4px; font-size: 14px;
+    border:1px solid var(--border); border-radius: 5px;
+  }
+  textarea { min-height: 46px; resize: vertical; }
+
+  /* Hints: single-line by default to save space */
+  .hint {
+    font-size: 12px; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+  /* Expand hint while the field is being edited */
+  .field:focus-within .hint { white-space: normal; }
+
+  /* Action row */
+  .actions { display:flex; gap: var(--gap); align-items:center; margin-top: 8px; }
+  .actions .spacer { flex: 1; }
+  button {
+    padding: 7px 11px; font-size: 14px; border-radius: 6px; cursor: pointer;
+    border: 1px solid #ccc; background:#fafafa;
+  }
+
+  /* Feedback pre blocks compacted */
+  pre {
+    background:#f7f7f7; padding: 6px 7px; border-radius: 5px;
+    overflow: auto; margin: 6px 0 0 0;
+  }
+  details summary {
+    cursor: pointer; list-style: none; user-select: none;
+    color:#333; font-weight:600; margin-top: 6px;
+  }
+  details summary::marker, details summary::-webkit-details-marker { display:none; }
+  details[open] summary { margin-bottom: 4px; }
+
+  /* Footer line (schedule suggestion) */
+  .footline { font-size:12px; color:#444; margin-top: 8px; }
+
+  /* Mobile: stack columns */
+  @media (max-width: 640px) {
+    .grid { grid-template-columns: 1fr; }
+    .actions { flex-direction: column; align-items: stretch; }
+    .actions .spacer { display:none; }
+  }
+
+  /* compact warning style */
+  .warn { border-left: 3px solid #e9a00a; background:#fff8e6; }
+  .warnline { color:#8a5a00; }
+
 </style>
 </head>
 <body>
@@ -337,16 +422,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="ok">
     <strong>Spot attempt summary</strong>
     <p class="small">
-      Node: <?= h($feedback['node']) ?> (<?= h($feedback['host']) ?>:<?= h((string)$feedback['port']) ?>)<br>
-      Time: <?= gmdate('Y-m-d H:i:s') ?> UTC — Connect: <?= h((string)$feedback['connect_ms']) ?> ms — Total: <?= h((string)$feedback['total_ms']) ?> ms
+      Node: <?= h($feedback['node']) ?> (<?= h($feedback['host']) ?>:<?= h((string)$feedback['port']) ?>) —
+      <?= gmdate('Y-m-d H:i:s') ?> UTC · Connect <?= h((string)$feedback['connect_ms']) ?> ms · Total <?= h((string)$feedback['total_ms']) ?> ms
     </p>
-    <p><strong>Command sent:</strong></p>
+    <div class="small"><strong>Command:</strong></div>
     <pre><?= h($feedback['dx_cmd']) ?></pre>
+
     <?php if (!empty($feedback['after_dx'])): ?>
-      <p><strong>Node reply (truncated):</strong></p>
-      <pre><?= h(mb_substr($feedback['after_dx'], 0, 1000)) ?></pre>
+      <?php
+        // show only the first ~3 lines by default
+        $reply = preg_split("/\r\n|\n|\r/", (string)$feedback['after_dx']);
+        $head = implode("\n", array_slice($reply, 0, 3));
+        $tail = implode("\n", array_slice($reply, 3));
+      ?>
+      <div class="small" style="margin-top:6px;"><strong>Node reply:</strong></div>
+      <pre><?= h($head) ?></pre>
+      <?php if (strlen($tail) > 0): ?>
+        <details>
+          <summary>More</summary>
+          <pre><?= h($tail) ?></pre>
+        </details>
+      <?php endif; ?>
     <?php else: ?>
-      <p class="small">No reply captured from the node.</p>
+      <div class="small" style="margin-top:6px;">No reply captured from the node.</div>
     <?php endif; ?>
   </div>
 <?php endif; ?>
@@ -354,63 +452,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <form method="post" id="selfspotForm" novalidate>
     <input type="hidden" name="csrf_token" value="<?= h($CSRF_TOKEN) ?>">
 
-    <label>Your login callsign (used to log in)
-      <input type="text" name="login_call" value="<?= h(strtoupper($logged_in_call ?? '')) ?>" readonly>
-      <div class="hint">Login uses your personal call; the spot uses the Event Callsign below.</div>
-    </label>
-
-    <label>Event callsign (the CACTUS callsign you want to spot)
-      <input type="text" name="event_call" id="event_call" value="<?= h($SELFSPOT_PREFILL['event_call']) ?>">
-      <div class="hint">Common event calls: <?= h(implode(', ', $EVENT_CALLSIGNS)) ?></div>
-    </label>
-
-    <div class="row">
-      <div class="col">
-        <label>Frequency (MHz or kHz)
-          <input type="text" name="frequency" id="frequency" value="<?=
-            h($SELFSPOT_PREFILL['freq_khz'] ? (string)((int)$SELFSPOT_PREFILL['freq_khz']) : '')
-          ?>">
-        </label>
-        <div class="hint">Examples: <code>14.035</code> (MHz) or <code>14035</code> (kHz).</div>
+    <div class="grid">
+      <div class="field">
+        <label>Your login callsign (used to log in)</label>
+        <input type="text" name="login_call" value="<?= h(strtoupper($logged_in_call ?? '')) ?>" readonly>
+        <div class="hint">Login uses your personal call; the spot uses the Event Callsign below.</div>
       </div>
 
-      <div class="col">
-        <label>Cluster node
-          <select name="node_id" id="node_id">
-            <?php foreach ($CLUSTER_NODES as $idx => $n): ?>
-              <option value="<?= h($n['id']) ?>"<?= $idx === 0 ? ' selected' : '' ?>>
-                <?= h(($n['name'] ?? $n['host']) . ' (' . $n['host'] . ':' . $n['port'] . ')') ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
-        </label>
+      <div class="field">
+        <label>Event callsign</label>
+        <input required type="text" name="event_call" id="event_call" value="<?= h($SELFSPOT_PREFILL['event_call']) ?>">
+        <div class="hint">Common: <?= h(implode(', ', $EVENT_CALLSIGNS)) ?></div>
       </div>
     </div>
 
-    <label>Comment (optional)
-      <textarea name="comment" id="comment" rows="3">CACTUS Special Event</textarea>
-      <div class="hint">Short note (mode, op name, etc.). Newlines removed; max ~160 chars.</div>
-    </label>
+    <div class="grid" style="margin-top: 6px;">
+      <div class="field">
+        <label>Frequency (MHz or kHz)</label>
+        <input type="text" name="frequency" id="frequency" value="<?=
+          h($SELFSPOT_PREFILL['freq_khz'] ? (string)((int)$SELFSPOT_PREFILL['freq_khz']) : '')
+        ?>">
+        <div class="hint">e.g. 14.035 (MHz) or 14035 (kHz)</div>
+      </div>
 
-    <div style="display:flex;gap:8px;align-items:center;">
+      <div class="field">
+        <label>Cluster node</label>
+        <select name="node_id" id="node_id">
+          <?php foreach ($CLUSTER_NODES as $idx => $n): ?>
+            <option value="<?= h($n['id']) ?>"<?= $idx === 0 ? ' selected' : '' ?>>
+              <?= h(($n['name'] ?? $n['host']) . ' (' . $n['host'] . ':' . $n['port'] . ')') ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+        <div class="hint">Pick a reliable node close to AZ</div>
+      </div>
+    </div>
+
+    <div class="grid-1" style="margin-top: 6px;">
+      <div class="field">
+        <label>Comment (optional)</label>
+        <textarea name="comment" id="comment" rows="2"><?= h($DEFAULT_COMMENT) ?></textarea>
+        <div class="hint">Short note (mode, op name, etc.). Newlines removed; max ~160 chars.</div>
+      </div>
+    </div>
+
+    <div class="actions">
       <button type="submit">Send Spot</button>
-      <div class="small" style="margin-left:auto">Logged in as <strong><?= h(strtoupper($logged_in_call)) ?></strong></div>
+      <div class="spacer"></div>
+      <div class="small">Logged in as <strong><?= h(strtoupper($logged_in_call)) ?></strong></div>
     </div>
   </form>
 
   <hr>
-  <div class="small">
+  <div class="footline">
     <strong>Schedule suggestion:</strong>
     <?php if ($SELFSPOT_PREFILL['matched']): ?>
-      <div>Matched hour: <?= h($SELFSPOT_PREFILL['target_date'] . ' ' . $SELFSPOT_PREFILL['target_time']) ?> UTC.</div>
-      <?php if ($SELFSPOT_PREFILL['band']): ?>
-        <div>Suggested: <?= h($SELFSPOT_PREFILL['band']) ?> / <?= h($SELFSPOT_PREFILL['mode'] ?? '') ?>
-          <?php if ($SELFSPOT_PREFILL['freq_khz']) echo ' @ ' . h((string)$SELFSPOT_PREFILL['freq_khz']) . ' kHz'; ?>
-        </div>
-      <?php endif; ?>
-      <div class="hint">Edit any field above as needed before sending.</div>
+        <?= h($SELFSPOT_PREFILL['target_date'] . ' ' . $SELFSPOT_PREFILL['target_time']) ?>Z —
+        <?= h($SELFSPOT_PREFILL['band'] ?? '') ?> <?= h($SELFSPOT_PREFILL['mode'] ?? '') ?>
+        <?php if ($SELFSPOT_PREFILL['freq_khz']) echo '@ ' . h((string)$SELFSPOT_PREFILL['freq_khz']) . ' kHz'; ?>
+        <?php if (!empty($using_test_time) && $using_test_time): ?>
+        <span class="small"> (test time <?= h($nowUtc->format('Y-m-d H:i:s')) ?>Z)</span>
+        <?php endif; ?>
     <?php else: ?>
-      <div>No scheduled slot detected for the current/upcoming hour for your callsign.</div>
+        <span class="warnline">No scheduled slot detected for the current/upcoming hour for your callsign.</span>
     <?php endif; ?>
   </div>
 
