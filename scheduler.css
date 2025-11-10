@@ -12,6 +12,20 @@
     cursor: pointer;
 }
 
+/* scheduler.css */
+.selfspot-button {
+    display: inline-block;
+    padding: 2px 4px;  /* Slightly smaller padding for a more compact look */
+    background-color: #f4a460;  /* Orange, not too intense */
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;  /* Slightly smaller border radius for a more modern look */
+    font-weight: bold;
+    text-align: center;
+    transition: background-color 0.3s ease, transform 0.3s ease;  /* Smooth hover effect */
+    cursor: pointer;
+}
+
 .logout-button:hover {
     background-color: #4682b4;  /* A slightly darker muted blue for hover */
     transform: scale(1.05);  /* Slightly enlarge button on hover for a better feel */

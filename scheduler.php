@@ -352,9 +352,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		<?php endif; ?>
 		<a href="?logout=1" class="logout-button">Log Out</a>
 		<?php if ($edit_authorized): ?>
-			<?php /* TODO add logic to present this button on if schedule for this guy exists at this time */ ?>
-			<?php if (event_lookup_op_schedule(null, null, $logged_in_call)): ?>
-				<a href="self_spot.php" target="_blank" class="logout-button">Self Spot</a>
+			<?php if (($spot_info = event_lookup_op_schedule(null, null, $logged_in_call))): ?>
+				<br><strong>You are on <?= $spot_info["assigned_call"] ?> <?= $spot_info["band"] ?> <?=  $spot_info["mode"] ?> at <?= $spot_info['time'] ?></strong> <a href="self_spot.php" target="_blank" class="selfspot-button">Self Spot</a>
 			<?php endif; ?>
 		<?php endif ?>
     </div>

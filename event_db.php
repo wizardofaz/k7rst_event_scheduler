@@ -288,6 +288,11 @@ function event_lookup_op_schedule($date, $time, $op) {
         if (!isset($row['op_call'])) continue;
         if ($cs_eq($row['op_call'], $op)) { $matched = $row; break; }
     }
+
+    if ($matched) {
+        $matched['date'] = $date;
+        $matched['time'] = $time;
+    }
     return $matched;
 }
 
