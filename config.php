@@ -7,6 +7,7 @@ ini_set('session.cookie_secure', '1');
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax'); 
 
+require_once __DIR__ . '/auth.php'; 
 require_once __DIR__ . '/logging.php'; // debug logging helpers
 require_once __DIR__ . '/debug_list.php'; // limits on which files produce debug lines
 require_once __DIR__ . '/util.php';
@@ -72,6 +73,7 @@ if (!auth_get_event() && $isIndex && isset($event_names[0])) {
 if (!auth_get_event()) {
     echo "No valid event could be determined from URL or current session state.";
     log_msg("DEBUG_VERBOSE", "no event could be chosen, aborting");
+    auth_logout();
     exit;
 }
 
