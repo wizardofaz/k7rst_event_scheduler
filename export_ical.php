@@ -28,11 +28,13 @@ foreach ($table_data as $row) {
     if (!$date || !$time) continue; // skip incomplete entries
 
     // Format as UTC-ish timestamp (naive)
-    $dt = DateTime::createFromFormat('Y-m-d H:i:s', "$date $time");
+    // $dt = DateTime::createFromFormat('Y-m-d H:i:s', "$date $time");
+    $dt = DateTime::createFromFormat('Y-m-d H:i:s', "$date $time", new DateTimeZone('UTC'));
     if (!$dt) continue;
 
-    $start = $dt->format('Ymd\THis');
-    $end = $dt->modify('+1 hour')->format('Ymd\THis');
+    //$start = $dt->format('Ymd\THis');
+    $start = $dt->format('Ymd\THis\Z');
+    $end = $dt->modify('+1 hour')->format('Ymd\THis\Z');
     $uid = uniqid("cactus-", true);
 
     echo "BEGIN:VEVENT\r\n";
