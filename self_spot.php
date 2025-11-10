@@ -120,6 +120,7 @@ $SELFSPOT_PREFILL = [
 ];
 
 $nowUtc = $overrideUtc ?: new DateTime('now', new DateTimeZone('UTC'));
+
 $target = clone $nowUtc;
 if ((int)$nowUtc->format('i') >= 30) {
     $target->modify('+1 hour');
@@ -127,25 +128,7 @@ if ((int)$nowUtc->format('i') >= 30) {
 $date = $target->format('Y-m-d');
 $time = $target->format('H:00:00');
 
-// Lookup schedule rows for that hour
-$rows = [];
-try {
-    $db_conn = get_event_db_connection_from_master(EVENT_NAME);
-    $rows = db_get_schedule_for_date_time($db_conn, $date, $time);
-} catch (Throwable $e) {
-    log_msg(DEBUG_WARNING, 'selfspot: schedule lookup failed ' . json_encode(['err'=>$e->getMessage(), 'date'=>$date, 'time'=>$time]));
-}
-
-$cs_eq = static function (?string $a, ?string $b): bool {
-    return $a !== null && $b !== null && strtoupper(trim($a)) === strtoupper(trim($b));
-};
-
-// Find the row belonging to the logged-in op
-$matched = null;
-foreach ($rows as $row) {
-    if (!isset($row['op_call'])) continue;
-    if ($cs_eq($row['op_call'], $logged_in_call)) { $matched = $row; break; }
-}
+$matched = event_lookup_op_schedule($date, $time, $logged_in_call);
 
 if ($matched) {
     if (!empty($matched['assigned_call'])) $SELFSPOT_PREFILL['event_call'] = strtoupper(trim((string)$matched['assigned_call']));

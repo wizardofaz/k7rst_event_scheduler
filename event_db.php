@@ -252,3 +252,43 @@ function ac_prefer_from_neighbors(array $neighbors, array $usedCalls): ?string {
     return null;
 }
 
+/**
+ * For a given date, time, op return the schedule if exists
+ */
+
+function event_lookup_op_schedule($date, $time, $op) {
+
+    // default date/time to now
+    if (!$date || !$time) {
+        $nowUtc = new DateTime('now', new DateTimeZone('UTC'));
+        $target = clone $nowUtc;
+        if ((int)$nowUtc->format('i') >= 30) {
+            $target->modify('+1 hour');
+        }
+        $date = $target->format('Y-m-d');
+        $time = $target->format('H:00:00');
+    }
+
+    // Lookup schedule rows for that hour
+    $rows = [];
+    try {
+        $db_conn = get_event_db_connection_from_master(EVENT_NAME);
+        $rows = db_get_schedule_for_date_time($db_conn, $date, $time);
+    } catch (Throwable $e) {
+        log_msg(DEBUG_WARNING, 'selfspot: schedule lookup failed ' . json_encode(['err'=>$e->getMessage(), 'date'=>$date, 'time'=>$time]));
+    }
+
+    $cs_eq = static function (?string $a, ?string $b): bool {
+        return $a !== null && $b !== null && strtoupper(trim($a)) === strtoupper(trim($b));
+    };
+
+    // Find the row belonging to the logged-in op
+    $matched = null;
+    foreach ($rows as $row) {
+        if (!isset($row['op_call'])) continue;
+        if ($cs_eq($row['op_call'], $op)) { $matched = $row; break; }
+    }
+    return $matched;
+}
+
+

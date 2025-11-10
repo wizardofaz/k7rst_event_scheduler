@@ -351,6 +351,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			Logged in for browsing only.
 		<?php endif; ?>
 		<a href="?logout=1" class="logout-button">Log Out</a>
+		<?php if ($edit_authorized): ?>
+			<?php /* TODO add logic to present this button on if schedule for this guy exists at this time */ ?>
+			<?php if (event_lookup_op_schedule(null, null, $logged_in_call)): ?>
+				<a href="self_spot.php" target="_blank" class="logout-button">Self Spot</a>
+			<?php endif; ?>
+		<?php endif ?>
     </div>
 
 	<div class="filter-section">
