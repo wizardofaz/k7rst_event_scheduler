@@ -39,12 +39,16 @@ $complete_calendar = false;
 $scheduled_only = false;
 
 $event_start_date = EVENT_START_DATE;
+$event_start_time = EVENT_START_TIME;
 $event_end_date = EVENT_END_DATE;
+$event_end_time = EVENT_END_TIME;
 
 // collect form data
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $start_date = $_POST['start_date'] ?? '';
+	$start_time = ($start_date == $event_start_date ? $event_start_time : "00:00:00");
     $end_date = $_POST['end_date'] ?? '';
+	$end_time = ($end_date == $event_end_date ? $event_end_time : "23:59:59");
     $time_slots = $_POST['time_slots'] ?? [];
     $days_of_week = $_POST['days_of_week'] ?? [];
     $bands_list = $_POST['bands_list'] ?? [];
@@ -200,6 +204,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         foreach ($dates as $date) {
             foreach ($times as $time) {
+				if ($date == $event_start_date && $time < $event_start_time) continue;
+				if ($date == $event_end_date && $time >= $event_end_time) continue;
 				$r = db_get_schedule_for_date_time($db_conn, $date, $time);
 				$none_are_me = true;
 				$schedule_count_in_this_slot = $r->num_rows;
@@ -375,7 +381,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			<label>End:</label>
 			<input type="date" name="end_date" value="<?= htmlspecialchars($end_date ?: $start_date ?: $event_end_date) ?>"
 				min="<?= htmlspecialchars($event_start_date) ?>" max="<?= htmlspecialchars($event_end_date) ?>" id="end_date" required>
-			&nbsp; &nbsp;(Event starts on: <strong><?= htmlspecialchars($event_start_date) ?></strong> Event ends on: <strong><?= htmlspecialchars($event_end_date) ?></strong>)<br>
+			&nbsp; &nbsp;(Event starts: <strong><?= htmlspecialchars($event_start_date) ?> <?= htmlspecialchars($event_start_time) ?> (UTC)</strong> Event ends: <strong><?= htmlspecialchars($event_end_date) ?> <?= htmlspecialchars($event_end_time) ?> (UTC)</strong>)<br>
 
 			<!-- Error message div -->
 			<div id="date_error" style="color: red; display: none;">End date cannot be earlier than the start date.</div>
