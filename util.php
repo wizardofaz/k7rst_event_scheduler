@@ -422,3 +422,110 @@ if (php_sapi_name() === 'cli' && basename(__FILE__) === basename($_SERVER['SCRIP
     $bad = build_public_log_link_args(['ASSIGNED_CALL' => 'K7C']); // missing LOOKUP_CALL for this template
     echo "BAD : " . var_export($bad, true) . "\n"; // Expect: ""
 }
+
+/**
+ * Check whether a club station is open for a given UTC date/time.
+ *
+ * @param string $club_station  Name of the club station (as used in CLUB_STATION_HOURS)
+ * @param string $date          UTC date in 'Y-m-d' format
+ * @param string $time          UTC time in 'H:i' or 'H:i:s' format
+ * @param int    $duration_mins Duration of slot in minutes (default 60)
+ * @return bool  True if the station is open or unrestricted, false if restricted
+ */
+function is_club_station_open(string $club_station, string $date, string $time, int $duration_mins = 60): bool
+{
+    // --- No configuration: unrestricted ---
+    if (!defined('CLUB_STATION_HOURS') || !is_array(CLUB_STATION_HOURS)) {
+        log_msg(DEBUG_VERBOSE, "CLUB_STATION_HOURS not defined");
+        return true;
+    }
+
+    $cfg = CLUB_STATION_HOURS;
+
+    // --- Unknown station: unrestricted ---
+    if (!array_key_exists($club_station, $cfg)) {
+        LOG_MSG(DEBUG_VERBOSE, "{$club_station} not restricted");
+        return true;
+    }
+
+    $station_cfg = $cfg[$club_station];
+    LOG_MSG(DEBUG_VERBOSE, "Hours for {$club_station}: " . json_encode($station_cfg));
+
+    // --- Get station timezone (default to UTC if missing) ---
+    $tz_name = $station_cfg['tz'] ?? 'UTC';
+    try {
+        $tz = new DateTimeZone($tz_name);
+    } catch (Exception $e) {
+        LOG_MSG(DEBUG_ERROR, "bad timezone {$tz_name} not restricted");
+        // Bad timezone? Fail open.
+        return true;
+    }
+
+    // --- Parse UTC slot start/end ---
+    try {
+        $slot_start_utc = new DateTimeImmutable("$date $time", new DateTimeZone('UTC'));
+    } catch (Exception $e) {
+        LOG_MSG(DEBUG_ERROR, "bad timezone {$tz_name} not restricted");
+        return true; // malformed input
+    }
+
+    $slot_end_utc = $slot_start_utc->modify("+{$duration_mins} minutes");
+
+    // --- Convert to local time ---
+    $slot_start_local = $slot_start_utc->setTimezone($tz);
+    $slot_end_local   = $slot_end_utc->setTimezone($tz);
+
+    $windows   = $station_cfg['windows']   ?? [];
+    $blackouts = $station_cfg['blackouts'] ?? [];
+
+    // --- Helper closure to test containment ---
+    $is_within = function (array $win) use ($slot_start_local, $slot_end_local, $tz): bool {
+        if (empty($win['start']) || empty($win['end'])) return false;
+        try {
+            $w_start = new DateTimeImmutable($win['start'], $tz);
+            $w_end   = new DateTimeImmutable($win['end'],   $tz);
+        } catch (Exception $e) {
+            log_msg(DEBUG_ERROR, "exception converting start ({$win['start']}) or end ({$win['end']})");
+            return false;
+        }
+        // Require full containment: win_start <= slot_start < slot_end <= win_end
+        $within = ($slot_start_local >= $w_start && $slot_end_local <= $w_end);
+        return $within;
+    };
+
+    // --- Helper to test overlap with blackout ---
+    $overlaps = function (array $blk) use ($slot_start_local, $slot_end_local, $tz): bool {
+        if (empty($blk['start']) || empty($blk['end'])) return false;
+        try {
+            $b_start = new DateTimeImmutable($blk['start'], $tz);
+            $b_end   = new DateTimeImmutable($blk['end'],   $tz);
+        } catch (Exception $e) {
+            return false;
+        }
+        // Any overlap at all?
+        $overlap = ($slot_start_local < $b_end && $slot_end_local > $b_start);
+        return $overlap;
+    };
+
+    // --- Check open windows ---
+    $open = false;
+    foreach ($windows as $win) {
+        if ($is_within($win)) {
+            $open = true;
+            break;
+        }
+    }
+
+    if (!$open) {
+        return false; // no window fully contains this slot
+    }
+
+    // --- Check for blackout overlaps ---
+    foreach ($blackouts as $blk) {
+        if ($overlaps($blk)) {
+            return false; // closed due to blackout
+        }
+    }
+
+    return true;
+}

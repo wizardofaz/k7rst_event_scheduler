@@ -526,7 +526,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			<td><?= $fmt_dt['dateUTC'] ?></td>
 			<td><?= $fmt_dt['timeUTC'] ?></td>
 			<td><?= $fmt_dt['timeLocal'] ?></td>
-			<?php $link = build_public_log_link(ASSIGNED_CALL: $assigned_call); ?>
+			<?php $link = ($assigned_call ? build_public_log_link(ASSIGNED_CALL: $assigned_call) : ''); ?>
 			<td>
 			<?php if ($link !== ''): ?>
 				<a href="<?= htmlspecialchars($link, ENT_QUOTES) ?>" target="_blank" rel="noopener">
@@ -578,7 +578,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 							if (!empty($row2['club_station'])) $used[] = $row2['club_station'];
 						}
 						foreach (CLUB_STATIONS as $station):
-							if (!in_array($station, $used)):
+							if (!in_array($station, $used) && is_club_station_open($station,$date, $time)):
 						?>
 							<option value="<?= $station ?>" <?= $station === $r['club_station'] ? 'selected' : '' ?>><?= $station ?></option>
 						<?php endif; endforeach; ?>
