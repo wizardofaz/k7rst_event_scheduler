@@ -75,7 +75,7 @@ function log_msg($level,$message) {
 
         // Respect optional debug file filters if configured.
         $fullpath = $caller['file'] ?? '';
-        if ($fullpath !== '' && !__debug_file_allowed($fullpath)) {
+        if ($level != DEBUG_ERROR && $fullpath !== '' && !__debug_file_allowed($fullpath)) {
             return;
         }
 
