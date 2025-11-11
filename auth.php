@@ -94,6 +94,8 @@ function auth_login_or_create(string $event, string $callsign, string $name, str
 
 function auth_logout(): void {
     csrf_start_session_if_needed();
+    $browse_only = !auth_is_authenticated(); //TODO can't use auth_is_browse_only(), role is "", why?
+    log_msg(DEBUG_DEBUG, json_encode($_SESSION['cactus_auth']));
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
         $params = session_get_cookie_params();
@@ -102,6 +104,11 @@ function auth_logout(): void {
     session_destroy();
     session_regenerate_id(true);
     session_regenerate_id(true);
+
+    if ($browse_only) {
+        header("Location: browser_goodbye.html");
+        exit;
+    }
 
     // Build redirect to the current directory (so it hits index.php)
     $https  = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
