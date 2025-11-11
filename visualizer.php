@@ -112,15 +112,18 @@ echo "<form method='get'>
     <button type='submit'>Apply</button>
 </form>";
 
-$startDate = new DateTime(EVENT_START_DATE);
-$endDate = new DateTime(EVENT_END_DATE);
+$startDate = EVENT_START_DATE;
+$startTime = EVENT_START_TIME;
+$endDate = EVENT_END_DATE;
+$endTime = EVENT_END_TIME;
 $interval = new DateInterval('P1D');
-$period = new DatePeriod($startDate, $interval, $endDate->modify('+1 day'));
+$period = new DatePeriod((new DateTime(EVENT_START_DATE)), $interval, (new DateTime(EVENT_END_DATE))->modify('+1 day'));
 
 echo "<table class='coverage-grid'>";
 
 // Header row with hours
-echo "<tr><td class='blank-cell'></td>";
+//echo "<tr><td class='blank-cell'></td>";
+echo "<tr><th style='text-align: right; padding-right: 6px; min-width: 60px;'>UTC</th>";
 for ($hour = 0; $hour < 24; $hour++) {
     $label = ($hour % 6 === 0) ? sprintf("%02d00", $hour) : '';
     echo "<th style='width: 32px;'>$label</th>";
@@ -134,6 +137,16 @@ foreach ($period as $dateObj) {
     echo "<tr><th style='text-align: right; padding-right: 6px; min-width: 60px;'>$weekday<br>$month-$day</th>";
     for ($hour = 0; $hour < 24; $hour++) {
         $rowTime = sprintf("%02d:00:00", $hour);
+        $skipCell = ($rowDate == $startDate && $rowTime < $startTime) ||
+                    ($rowDate == $endDate && $rowTime > $endTime);
+        log_msg(DEBUG_DEBUG, "skipCell " . json_encode($skipCell) . " \n\t\tcell: " . json_encode($rowDate) . " " .  json_encode($rowTime) . "\n\t\tevent start: " . json_encode($startDate) . " " . json_encode($startTime) . " \n\t\tevent end " . json_encode($startDate) . " " . json_encode($startTime) );
+        if ($skipCell) {
+            echo "<td style='background-color: #000000; "
+                . "title=\"(outside of schedule)\" "
+                . "data-date='$rowDate' data-time='$rowTime'></td>";
+            continue;
+        }
+
         $result = db_get_schedule_for_date_time($conn, $rowDate, $rowTime);
         $entries = [];
         if ($result) while ($row = $result->fetch_assoc()) $entries[] = $row;

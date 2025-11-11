@@ -20,6 +20,16 @@ table.coverage-grid td.blank-cell {
   background-color: transparent;
 }
 
+table.coverage-grid th.corner{
+  text-align:right;      /* or center, your call */
+  padding: 0 0px;
+  /* if you use sticky headers/left column: */
+  position: sticky;
+  top: 0;
+  left: 0;
+  background-color: transparent;     /* match your header bg */
+}
+
 /* slot_edit popup styling */
 #popup {
   position: fixed;
