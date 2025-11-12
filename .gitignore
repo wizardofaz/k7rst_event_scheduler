@@ -1,4 +1,5 @@
 # Ignore backup files like xxx.php.backupxxx
+*.code-workspace
 *.php.backup*
 *.php.*save*
 *.json.*save*
