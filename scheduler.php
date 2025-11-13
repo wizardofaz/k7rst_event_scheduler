@@ -514,10 +514,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				$highlight_color = $highlight_colors[$highlight_index];
 				$prev_date_time = $date_time;
 			}
-			$status = 'Open';
+			$status = $status_msg = 'Open';
 			if ($op) {
-				// $status = ($op === $logged_in_call) ? 'Booked by you' : "Booked by {$op} {$name}";
-				$status = "{$op} {$name}";
+				$status = ($op === $logged_in_call) ? 'Booked by you' : "Booked by {$op} {$name}";
+				$status_msg = "{$op} {$name}";
 			}
 		?>
 		<tr style="<?= $op === $logged_in_call ? 'background-color:' . $highlight_booked_by_you : 'background-color:' . $highlight_color ?>">
@@ -604,7 +604,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 					<?= htmlspecialchars($r['notes'] ?? '') ?: '--' ?>
 				<?php endif; ?>
 			</td>
-			<td><?= $status ?></td>
+			<td><?= $status_msg ?></td>
 		</tr>
 		<?php endforeach; ?>
 	</table>
