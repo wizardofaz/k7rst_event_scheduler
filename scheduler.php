@@ -516,10 +516,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			}
 			$status = 'Open';
 			if ($op) {
-				$status = ($op === $logged_in_call) ? 'Booked by you' : "Booked by {$op} {$name}";
+				// $status = ($op === $logged_in_call) ? 'Booked by you' : "Booked by {$op} {$name}";
+				$status = "{$op} {$name}";
 			}
 		?>
-		<tr style="<?= $status === 'Booked by you' ? 'background-color:' . $highlight_booked_by_you : 'background-color:' . $highlight_color ?>">
+		<tr style="<?= $op === $logged_in_call ? 'background-color:' . $highlight_booked_by_you : 'background-color:' . $highlight_color ?>">
 			<td>
 				<?php if ($status === 'Open' && $edit_authorized): ?>
 					<input type="checkbox" name="slots[]" value="<?= $key ?>">
