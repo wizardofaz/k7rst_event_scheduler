@@ -18,6 +18,7 @@ foreach ($table_data as $row) {
 
     $date = $row['date'] ?? '';
     $time = $row['time'] ?? '00:00';
+    $assigned_call = $row['assigned_call'];
     $band = $row['band'] ?? '';
     $mode = $row['mode'] ?? '';
     $op = $row['op'] ?? '';
@@ -42,7 +43,7 @@ foreach ($table_data as $row) {
     echo "DTSTAMP:" . gmdate('Ymd\THis\Z') . "\r\n";
     echo "DTSTART:$start\r\n";
     echo "DTEND:$end\r\n";
-    echo "SUMMARY: " . EVENT_DISPLAY_NAME . "(" . EVENT_NAME . "): " . "$band $mode - $op\r\n";
+    echo "SUMMARY: " . EVENT_DISPLAY_NAME . "(" . EVENT_NAME . "): " . "$op as $assigned_call on $band $mode\r\n";
     echo "DESCRIPTION:" . addcslashes("Operator: $op $name\nBand/Mode: $band $mode\nStation: $station\n$notes", "\n") . "\r\n";
     echo "END:VEVENT\r\n";
 }
