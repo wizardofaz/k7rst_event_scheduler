@@ -529,3 +529,109 @@ function is_club_station_open(string $club_station, string $date, string $time, 
 
     return true;
 }
+
+// Special key used for per-category totals.
+// This will live alongside the "real" instance keys inside each category.
+if (!defined('USE_COUNTS_TOTAL_KEY')) {
+    define('USE_COUNTS_TOTAL_KEY', '#TOTAL#');
+}
+
+/**
+ * Increment a usage counter for a given category/instance pair.
+ *
+ * - Mutates $use_counts in place (passed by reference).
+ * - All keys (category and instance) are uppercased.
+ * - Lazily initializes structures as needed.
+ * - Maintains a per-category total under USE_COUNTS_TOTAL_KEY.
+ *
+ * @param array|null $use_counts  Overall counts structure (mutated).
+ * @param string     $category    Category name (e.g. "call", "mode", "band").
+ * @param string     $instance    Instance within the category (e.g. "k7c", "cw").
+ * @return void
+ */
+function accumulate_use_count(&$use_counts, $category, $instance)
+{
+    // Normalize inputs to uppercase strings
+    $category = strtoupper(trim((string) $category));
+    $instance = strtoupper(trim((string) $instance));
+
+    // If either is empty, do nothing
+    if ($category === '' || $instance === '') {
+        return;
+    }
+
+    // Ensure the root structure is an array
+    if (!is_array($use_counts)) {
+        $use_counts = [];
+    }
+
+    // Ensure the category array exists
+    if (!isset($use_counts[$category]) || !is_array($use_counts[$category])) {
+        $use_counts[$category] = [];
+    }
+
+    // Increment the instance count
+    if (!isset($use_counts[$category][$instance])) {
+        $use_counts[$category][$instance] = 0;
+    }
+    $use_counts[$category][$instance]++;
+
+    // Maintain per-category total
+    $totalKey = USE_COUNTS_TOTAL_KEY;
+    if (!isset($use_counts[$category][$totalKey])) {
+        $use_counts[$category][$totalKey] = 0;
+    }
+    $use_counts[$category][$totalKey]++;
+}
+
+/**
+ * Get the list of category names that appear in $use_counts.
+ *
+ * - Returns an array of uppercase category names.
+ * - Sorted alphabetically by key.
+ *
+ * @param array|null $use_counts
+ * @return array
+ */
+function get_use_categories($use_counts)
+{
+    if (!is_array($use_counts) || empty($use_counts)) {
+        return [];
+    }
+
+    $categories = array_keys($use_counts);
+    sort($categories, SORT_STRING);
+
+    return $categories;
+}
+
+/**
+ * Get all counts for a specific category.
+ *
+ * - Category name is normalized to uppercase.
+ * - Returns an associative array: [INSTANCE => COUNT, ...]
+ * - Includes the per-category total under USE_COUNTS_TOTAL_KEY.
+ * - Sorted by key (instance name).
+ *
+ * @param array|null $use_counts
+ * @param string     $category
+ * @return array
+ */
+function get_use_counts($use_counts, $category)
+{
+    if (!is_array($use_counts) || empty($use_counts)) {
+        return [];
+    }
+
+    $category = strtoupper(trim((string) $category));
+    if ($category === '' || !isset($use_counts[$category]) || !is_array($use_counts[$category])) {
+        return [];
+    }
+
+    $categoryCounts = $use_counts[$category];
+
+    // Sort by instance key (including the total key)
+    ksort($categoryCounts, SORT_STRING);
+
+    return $categoryCounts;
+}

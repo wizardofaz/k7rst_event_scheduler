@@ -202,6 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		log_msg(DEBUG_VERBOSE, "bands[]: " . json_encode($bands_list));
 		log_msg(DEBUG_VERBOSE, "modes[]: " . json_encode($modes_list));
 
+		$use_counts = null; // accumulator for usage counts of CALL, BAND, MODE, etc
         foreach ($dates as $date) {
             foreach ($times as $time) {
 				if ($date == $event_start_date && $time < $event_start_time) continue;
@@ -233,6 +234,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 						// Not filtered out - put it in the table to display
 						log_msg(DEBUG_VERBOSE, "Schedule line was not filtered");
 						$table_rows[] = compact('date', 'time', 'band', 'mode', 'assigned_call', 'op', 'name', 'club_station', 'notes');
+						accumulate_use_count($use_counts, 'EVENT CALL', $assigned_call);
+						accumulate_use_count($use_counts, 'OP', $op);
+						accumulate_use_count($use_counts, 'BAND', $band);
+						accumulate_use_count($use_counts, 'MODE', $mode);
 					}
 				}
 
@@ -609,6 +614,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		<?php endforeach; ?>
 	</table>
 
+	<?php
+	// Display usage counts
+	$categories = get_use_categories($use_counts);
+
+	if (!empty($categories)): ?>
+		<h2>Usage Summary</h2>
+
+		<?php foreach ($categories as $category): 
+			$counts = get_use_counts($use_counts, $category);
+			if (empty($counts)) {
+				continue;
+			}
+
+			// Optional: if you want TOTAL last, pull it out and re-add at the end
+			$totalKey = defined('USE_COUNTS_TOTAL_KEY') ? USE_COUNTS_TOTAL_KEY : '#TOTAL#';
+			$totalValue = null;
+			if (isset($counts[$totalKey])) {
+				$totalValue = $counts[$totalKey];
+				unset($counts[$totalKey]);
+			}
+			?>
+
+			<h3><?php echo htmlspecialchars($category); ?></h3>
+			<table border="1" cellpadding="4" cellspacing="0">
+				<tr>
+					<?php foreach ($counts as $instance => $_): ?>
+						<th><?php echo htmlspecialchars($instance); ?></th>
+					<?php endforeach; ?>
+
+					<?php if ($totalValue !== null): ?>
+						<th><?php echo htmlspecialchars($totalKey); ?></th>
+					<?php endif; ?>
+				</tr>
+				<tr>
+					<?php foreach ($counts as $instance => $count): ?>
+						<td><?php echo (int) $count; ?></td>
+					<?php endforeach; ?>
+
+					<?php if ($totalValue !== null): ?>
+						<td><?php echo (int) $totalValue; ?></td>
+					<?php endif; ?>
+				</tr>
+			</table>
+			<br>
+
+		<?php endforeach; ?>
+
+	<?php else: ?>
+
+		<p>No usage counts collected.</p>
+
+	<?php endif; ?>
 
 	<br>
 	<?php if ($edit_authorized): ?>
