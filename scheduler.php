@@ -492,10 +492,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 	<!-- See JavaScript handlers at the bottom for how enter key is handled -->
 	<div class="section">
-    	<strong>Use one of these buttons to choose what to show, filtered by selections above. Then click the checkbox on each row you want to add to or delete from your schedule, and scroll to the bottom to click what action to be taken on selected rows.</strong><br><br>
+		<!--
+    	<strong>Click the show button below to display the schedule filtered by selections above. <br></strong>
+		<strong>To add to your schedule check "Include open slots" above, then click the checkbox on each open row you want to add.<br></strong>
+		<strong>To delete some of your schedule, click the "delete" checkbox on specific rows of your schedule.<br></strong>
+		<strong>After making selections, scroll to the bottom (or ctrl-end) and use the "Add Selected" or "Delete Selected".<br></strong>
+		<br><br>
+		-->
     	<input type="hidden" name="enter_pressed" value="Enter Pressed">
     	<div class="button-container">
-        	<input type="submit" name="show_schedule" value="Show Schedule">
+        	<input type="submit" name="show_schedule" value="Show Schedule (use filter selections above)" 
+				title="Show the schedule according to selections above. Make sure to select 'Include open slots' if you want to be able to add to your schedule.">
+			<button type="button" onclick="openClubStationHours()">When are the club stations available?</button>
 			<!--
         	<input type="submit" name="complete_calendar" value="Show Complete Calendar (scheduled and open)">
         	<input type="submit" name="scheduled_only" value="Show Scheduled Slots Only">
@@ -711,6 +719,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	</form>
 
 <?php endif; ?>
+
+<script>
+function openClubStationHours() {
+    window.open(
+        'display_club_station_hours.php?popup=1',
+        'clubStationHours',
+        'width=900,height=700,resizable=yes,scrollbars=yes'
+    );
+}
+</script>
 
 <script>
 setTimeout(() => {
