@@ -80,6 +80,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$mine_plus_open = (!$show_all_ops && $show_open_slots); // 01
 		$scheduled_only = ($show_all_ops && !$show_open_slots); // 10
 		$complete_calendar = ($show_all_ops && $show_open_slots); // 11
+		if ($mine_only) $_SESSION['most_recent_show'] = 'mine_only';
+		elseif ($mine_plus_open) $_SESSION['most_recent_show'] = 'mine_plus_open';
+		elseif ($scheduled_only) $_SESSION['most_recent_show'] = 'scheduled_only';
+		elseif ($complete_calendar) $_SESSION['most_recent_show'] = 'complete_calendar';
 	}
 
     log_msg(DEBUG_DEBUG, "Incoming POST: " . json_encode($_POST));
@@ -648,7 +652,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	// Display usage counts
 	$categories = get_use_categories($use_counts);
 
-	if (!empty($categories)): ?>
+	if (defined('SHOW_USAGE_COUNTS') && SHOW_USAGE_COUNTS && !empty($categories)): ?>
 		<h2>Usage Summary</h2>
 
 		<?php foreach ($categories as $category): 
@@ -690,11 +694,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			<br>
 
 		<?php endforeach; ?>
-
-	<?php else: ?>
-
-		<p>No usage counts collected.</p>
-
 	<?php endif; ?>
 
 	<br>
