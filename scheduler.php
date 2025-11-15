@@ -34,7 +34,7 @@ $modes_list = MODES_LIST; // all modes selected by default
 
 // which show button was clicked:
 $show_all_ops = false;
-$show_open_slots = false;
+$show_open_slots = true;
 $mine_only = false;
 $mine_plus_open = false;
 $complete_calendar = false;
