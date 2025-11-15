@@ -160,21 +160,30 @@ function validate_hours(array $root): array {
 function normalize_hours(array $root): array {
     $stations = array_keys($root);
     sort($stations, SORT_NATURAL | SORT_FLAG_CASE);
+
     $out = [];
     foreach ($stations as $station) {
-        $cfg = $root[$station];
-        $tz = $cfg['tz'] ?? 'UTC';
-        $windows = $cfg['windows'] ?? [];
-        $blackouts = $cfg['blackouts'] ?? [];
+        $cfg = is_array($root[$station]) ? $root[$station] : [];
+        $title = isset($cfg['title']) && is_string($cfg['title']) && $cfg['title'] !== ''
+            ? $cfg['title'] : $station;
+        $tz = isset($cfg['tz']) && is_string($cfg['tz']) && $cfg['tz'] !== ''
+            ? $cfg['tz'] : 'UTC';
+
+        $windows   = isset($cfg['windows'])   && is_array($cfg['windows'])   ? $cfg['windows']   : [];
+        $blackouts = isset($cfg['blackouts']) && is_array($cfg['blackouts']) ? $cfg['blackouts'] : [];
 
         usort($windows,   fn($a,$b)=>($a['start'] ?? '') <=> ($b['start'] ?? ''));
         usort($blackouts, fn($a,$b)=>($a['start'] ?? '') <=> ($b['start'] ?? ''));
 
+        // Emit `title` before `tz`
         $out[$station] = [
-            'tz' => $tz,
-            'windows' => array_values($windows),
+            'title'    => $title,
+            'tz'       => $tz,
+            'windows'  => array_values($windows),
         ];
-        if (!empty($blackouts)) $out[$station]['blackouts'] = array_values($blackouts);
+        if (!empty($blackouts)) {
+            $out[$station]['blackouts'] = array_values($blackouts);
+        }
     }
     return $out;
 }
@@ -359,7 +368,8 @@ if ($resultJson === '') $resultJson = $inputJson;
 
         <div class="notes">
           <p><strong>Format:</strong> Local times per station, <code>Y-m-d H:i</code>. Half-open intervals (end exclusive).</p>
-          <p><strong>Keys:</strong> <code>{ "Station Name": { "tz": "America/Phoenix", "windows": [ { "start": "...", "end": "..." } ], "blackouts": [ ... ] } }</code></p>
+          <p><strong>Display:</strong> <code>title</code> is what ops will see; if omitted, the station key is used.</p>
+          <p><strong>Keys:</strong> <code>{ "Station Name": { "title": "Display name", "tz": "America/Phoenix", "windows": [ { "start": "...", "end": "..." } ], "blackouts": [ ... ] } }</code></p>
           <p>CSRF cookie (masked): <?=h(substr($csrf_cookie,0,6))?>…</p>
         </div>
       </form>
@@ -407,6 +417,11 @@ if ($resultJson === '') $resultJson = $inputJson;
       </div>
 
       <div class="field" style="margin-top:8px;">
+        <label for="titleInput"><strong>Title (display)</strong></label>
+        <input id="titleInput" type="text" placeholder="Shown to operators (defaults to station key)">
+      </div>
+
+      <div class="field" style="margin-top:8px;">
         <label for="tzInput"><strong>Timezone (IANA)</strong></label>
         <input list="tzList" id="tzInput" type="text" placeholder="e.g., America/Phoenix">
         <datalist id="tzList">
@@ -443,6 +458,7 @@ if ($resultJson === '') $resultJson = $inputJson;
   // ---------- Editor state ----------
   const jsonText = document.getElementById('jsonText');
   const stationPick = document.getElementById('stationPick');
+  const titleInput = document.getElementById('titleInput');
   const tzInput = document.getElementById('tzInput');
   const windowsList = document.getElementById('windowsList');
   const blackoutsList = document.getElementById('blackoutsList');
@@ -506,11 +522,14 @@ if ($resultJson === '') $resultJson = $inputJson;
     const name = currentStation();
     const cfg = model[name];
     if (!cfg) {
+      titleInput.value = '';
       tzInput.value = '';
       windowsList.innerHTML = '';
       blackoutsList.innerHTML = '';
       return;
     }
+    // Title defaults to station key if undefined/empty
+    titleInput.value = (typeof cfg.title === 'string' && cfg.title.trim() !== '') ? cfg.title : name;
     tzInput.value = cfg.tz || '';
 
     // Windows
@@ -560,7 +579,7 @@ if ($resultJson === '') $resultJson = $inputJson;
     const name = prompt('New station name:');
     if (!name) return;
     if (model[name]) { alert('That station already exists.'); return; }
-    model[name] = { tz: 'America/Phoenix', windows: [], blackouts: [] };
+    model[name] = { title: name, tz: 'America/Phoenix', windows: [], blackouts: [] };
     refreshStationPicker(name);
   });
 
@@ -571,8 +590,13 @@ if ($resultJson === '') $resultJson = $inputJson;
     const newName = prompt('Rename station to:', oldName);
     if (!newName || newName === oldName) return;
     if (model[newName]) { alert('A station with that name already exists.'); return; }
-    model[newName] = model[oldName];
+
+    const cfg = model[oldName];
     delete model[oldName];
+    model[newName] = cfg || {};
+    if (!model[newName].title || model[newName].title === oldName) {
+      model[newName].title = newName;
+    }
     refreshStationPicker(newName);
   });
 
@@ -588,6 +612,16 @@ if ($resultJson === '') $resultJson = $inputJson;
   // Change selected station
   stationPick.addEventListener('change', ()=>{
     renderStation();
+  });
+
+  // title change
+  titleInput.addEventListener('change', ()=>{
+    const name = currentStation();
+    if (!name) return;
+    const v = titleInput.value.trim();
+    // Store empty as undefined so normalize will fall back to station name
+    if (!model[name]) model[name] = {};
+    model[name].title = v;
   });
 
   // TZ change
@@ -636,6 +670,9 @@ if ($resultJson === '') $resultJson = $inputJson;
     // Clean up: ensure tz exists, arrays exist, sort by start
     for (const [name, cfg] of Object.entries(model)) {
       if (!cfg || typeof cfg !== 'object') { delete model[name]; continue; }
+      if (!cfg.title || typeof cfg.title !== 'string' || cfg.title.trim() === '') {
+        cfg.title = name; // default when absent
+      }
       if (!cfg.tz) cfg.tz = 'UTC';
       cfg.windows = Array.isArray(cfg.windows) ? cfg.windows : [];
       cfg.blackouts = Array.isArray(cfg.blackouts) ? cfg.blackouts : [];
@@ -646,8 +683,23 @@ if ($resultJson === '') $resultJson = $inputJson;
     }
     // Sort stations by name
     const ordered = {};
-    Object.keys(model).sort((a,b)=> a.localeCompare(b, undefined, {numeric:true, sensitivity:'base'}))
-      .forEach(k => ordered[k] = model[k]);
+    Object.keys(model)
+      .sort((a,b)=> a.localeCompare(b, undefined, {numeric:true, sensitivity:'base'}))
+      .forEach(name => {
+        const cfg = model[name] || {};
+
+        // Ensure defaults before emitting
+        const title = (cfg.title && String(cfg.title).trim()) ? cfg.title : name;
+        const tz    = (cfg.tz && String(cfg.tz).trim()) ? cfg.tz : 'UTC';
+        const windows   = Array.isArray(cfg.windows)   ? cfg.windows : [];
+        const blackouts = Array.isArray(cfg.blackouts) ? cfg.blackouts : [];
+
+        // Emit in this exact order: title, tz, windows, blackouts (if any)
+        const outCfg = { title, tz, windows };
+        if (blackouts.length) outCfg.blackouts = blackouts;
+
+        ordered[name] = outCfg;
+      });
     jsonText.value = pretty(ordered);
     // Optional: quick lint feedback
     quickLint();
@@ -663,6 +715,7 @@ if ($resultJson === '') $resultJson = $inputJson;
     for (const [station, cfg] of Object.entries(model)) {
       if (!station.trim()) issues.push('Station name cannot be empty.');
       if (!cfg || typeof cfg !== 'object') { issues.push(`Station "${station}" must be an object.`); continue; }
+      if (!cfg.title || typeof cfg.title !== 'string') { issues.push(`Station "${station}" missing title (will default to station name).`); }
       if (!cfg.tz || typeof cfg.tz !== 'string') issues.push(`Station "${station}" missing tz string.`);
       if (!Array.isArray(cfg.windows)) issues.push(`Station "${station}" windows must be an array.`);
       if (cfg.blackouts && !Array.isArray(cfg.blackouts)) issues.push(`Station "${station}" blackouts must be an array.`);

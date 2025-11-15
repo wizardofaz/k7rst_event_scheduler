@@ -215,13 +215,14 @@ $page_title = $event_title . ' – Club Station Open Hours';
     <?php foreach ($stations as $name => $station): ?>
         <?php
         $station_name = (string)$name;
+        $station_title = isset($station['title']) && is_string($station['title']) ? $station['title'] : ''; 
         $tz_string = isset($station['tz']) && is_string($station['tz']) ? $station['tz'] : '';
         $windows = $station['windows'] ?? [];
         ?>
         <div class="station-block">
             <div class="station-header">
                 <div class="station-name">
-                    <?= htmlspecialchars($station_name, ENT_QUOTES, 'UTF-8') ?>
+                    <?= htmlspecialchars($station_name . ': ' . $station_title, ENT_QUOTES, 'UTF-8') ?>
                 </div>
                 <?php if ($tz_string !== ''): ?>
                     <div class="station-tz">
