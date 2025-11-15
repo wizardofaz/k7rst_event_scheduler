@@ -32,9 +32,11 @@ $days_of_week = array_keys(DAY_OPTS); // all days of week selected by default
 $bands_list = BANDS_LIST; // all bands selected by default
 $modes_list = MODES_LIST; // all modes selected by default
 
-// which button was clicked:
+// which show button was clicked:
+$show_all_ops = false;
+$show_open_slots = false;
 $mine_only = false;
-$mine_plus_open =
+$mine_plus_open = false;
 $complete_calendar = false;
 $scheduled_only = false;
 
@@ -54,6 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $bands_list = $_POST['bands_list'] ?? [];
     $modes_list = $_POST['modes_list'] ?? [];
 
+	$show_all_ops = ($_POST['show_me_or_all'] ?? '') == 'show_all_ops';
+	$show_open_slots = ($_POST['show_open_slots'] ?? '') == 'show_open_slots';
+
 	// remember the most recent show button so it can be reused after an add/delete
 	// TODO this doesn't work: if (isset($_POST['mine_only']) || isset($_POST['enter_pressed'])) {
 	if (isset($_POST['mine_only'])) {
@@ -68,6 +73,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	} elseif (isset($_POST['scheduled_only'])) {
 		$scheduled_only = true;
 		$_SESSION['most_recent_show'] = 'scheduled_only';
+	} elseif (isset($_POST['show_schedule'])) {
+		//TODO eliminate the old per button variables? 
+		//TODO but for now map new variables into the old ones
+		$mine_only = (!$show_all_ops && !$show_open_slots); // 00
+		$mine_plus_open = (!$show_all_ops && $show_open_slots); // 01
+		$scheduled_only = ($show_all_ops && !$show_open_slots); // 10
+		$complete_calendar = ($show_all_ops && $show_open_slots); // 11
 	}
 
     log_msg(DEBUG_DEBUG, "Incoming POST: " . json_encode($_POST));
@@ -468,6 +480,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				<?php endif; ?>	
 			<?php endforeach; ?>
 		</div>
+
+		<div class="section">
+			<strong>Select whose schedule lines to show:</strong><br>
+			<label><input type="radio" name="show_me_or_all" value="show_all_ops" <?= $show_all_ops ? 'checked' : '' ?>> All Ops</label>
+			<label><input type="radio" name="show_me_or_all" value="show_just_me" <?= !$show_all_ops ? 'checked' : '' ?>> Just my call</label>
+			<label><input type="checkbox" name="show_open_slots" value="show_open_slots" <?= $show_open_slots ? 'checked' : '' ?>> Include open slots</label>
+		</div>
 	</div>
 	<br><br>
 
@@ -476,12 +495,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     	<strong>Use one of these buttons to choose what to show, filtered by selections above. Then click the checkbox on each row you want to add to or delete from your schedule, and scroll to the bottom to click what action to be taken on selected rows.</strong><br><br>
     	<input type="hidden" name="enter_pressed" value="Enter Pressed">
     	<div class="button-container">
+        	<input type="submit" name="show_schedule" value="Show Schedule">
+			<!--
         	<input type="submit" name="complete_calendar" value="Show Complete Calendar (scheduled and open)">
         	<input type="submit" name="scheduled_only" value="Show Scheduled Slots Only">
 			<?php if ($edit_authorized): ?>
 	        	<input type="submit" name="mine_plus_open" value="Show My Schedule and Open Slots">
     	    	<input type="submit" name="mine_only" value="Show My Schedule Only">
 			<?php endif; ?>
+			-->
     	</div>
 	</div>
 
