@@ -106,7 +106,8 @@ function auth_logout(): void {
     session_regenerate_id(true);
 
     if ($browse_only) {
-        header("Location: browser_goodbye.html");
+        $event_name = (defined('EVENT_NAME') ? EVENT_NAME : '');
+        header("Location: browser_goodbye.php?event=".EVENT_NAME);
         exit;
     }
 
