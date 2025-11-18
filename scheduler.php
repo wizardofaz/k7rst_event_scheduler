@@ -100,57 +100,82 @@ $required_club_station_missing = 0;
 
 // build the table to be displayed, optionally with add/delete buttons (if authorized)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($edit_authorized && isset($_POST['add_selected']) && isset($_POST['slots'])) {
-		log_msg(DEBUG_INFO, "processing schedule add:");
-        foreach ($_POST['slots'] as $slot) {
-			$assigned_call = null;
-            list($date, $time) = explode('|', $slot);
-			// $assigned_call = $_POST['assigned_call'][$slot] ?? ''; // assigned call is not an input field
-			$band = $_POST['band'][$slot] ?? null;
-			$mode = $_POST['mode'][$slot] ?? null;
-            $club_station = $_POST['club_station'][$slot] ?? '';
-            $notes = $_POST['notes'][$slot] ?? '';
-			log_msg(DEBUG_INFO, "\tadd info: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
-            // Check club station conflict: more than one op in given date/time/club_station
-            if (!empty($club_station)) {
-				$club_station_conflict_check = db_check_club_station_in_use($db_conn, $date, $time, $club_station);
-                if ($club_station_conflict_check) {
-                    $club_station_conflict += 1;
-					$_SESSION['club_station_conflict_flash'] = true;
-					log_msg(DEBUG_INFO, "club_station_conflict: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
-                }
-            }
-			// For some events (e.g. Field Day) "club_station" selection is required
-			if (empty($club_station) && CLUB_STATION_REQUIRED) {
-				$_SESSION['required_club_station_missing_flash'] = true;
-				log_msg(DEBUG_INFO, "required_club_station_missing: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
-				$required_club_station_missing += 1;
-			}
+    if ($edit_authorized) {
+		if (isset($_POST['add_selected'])) { 
+			if (!isset($_POST['slots'])) {
+				$_SESSION['nothing_to_add_flash'] = true;
+				log_msg(DEBUG_WARNING, "add button clicked but nothing selected to add.");
+			} else {
+				log_msg(DEBUG_INFO, "processing schedule add of ".count($_POST['slots'])." slots:");
+				foreach ($_POST['slots'] as $slot) {
+					$assigned_call = null;
+					list($date, $time) = explode('|', $slot);
+					// $assigned_call = $_POST['assigned_call'][$slot] ?? ''; // assigned call is not an input field
+					$band = $_POST['band'][$slot] ?? null;
+					$mode = $_POST['mode'][$slot] ?? null;
+					$club_station = $_POST['club_station'][$slot] ?? '';
+					$notes = $_POST['notes'][$slot] ?? '';
+					log_msg(DEBUG_INFO, "\tadd info: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
+					// Check club station conflict: more than one op in given date/time/club_station
+					if (!empty($club_station)) {
+						$club_station_conflict_check = db_check_club_station_in_use($db_conn, $date, $time, $club_station);
+						if ($club_station_conflict_check) {
+							$club_station_conflict += 1;
+							$_SESSION['club_station_conflict_flash'] = true;
+							log_msg(DEBUG_INFO, "club_station_conflict: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
+						}
+					}
+					// For some events (e.g. Field Day) "club_station" selection is required
+					if (empty($club_station) && CLUB_STATION_REQUIRED) {
+						$_SESSION['required_club_station_missing_flash'] = true;
+						log_msg(DEBUG_INFO, "required_club_station_missing: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
+						$required_club_station_missing += 1;
+					}
 
-            // Check band/mode conflict: more than one op in given date/time/band/mode
-            $band_mode_conflict_check = db_check_band_mode_conflict($db_conn, $date, $time, $band, $mode);
-			if ($band_mode_conflict_check) {
-            	$band_mode_conflict += 1;
-				$_SESSION['band_mode_conflict_flash'] = true;
-				log_msg(DEBUG_INFO, "band_mode_conflict: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
-			}
+					// Check band/mode conflict: more than one op in given date/time/band/mode
+					$band_mode_conflict_check = db_check_band_mode_conflict($db_conn, $date, $time, $band, $mode);
+					if ($band_mode_conflict_check) {
+						$band_mode_conflict += 1;
+						$_SESSION['band_mode_conflict_flash'] = true;
+						log_msg(DEBUG_INFO, "band_mode_conflict: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
+					}
 
-			if(EVENT_CALLSIGNS_REQUIRED) {
-				$assigned_call = choose_assigned_call($date, $time, $logged_in_call, $band, $mode);
-			    if ($assigned_call === null) {
-					// all calls are in use in this slot, must reject
-					$_SESSION['slot_full_flash'] = true;
-					log_msg(DEBUG_INFO, "No callsign available for {$date} {$time} (slot full).");
-				} else {
-					log_msg(DEBUG_VERBOSE, "assigned_call is {$assigned_call} for {$date} {$time} {$logged_in_call}.");
+					if(EVENT_CALLSIGNS_REQUIRED) {
+						$assigned_call = choose_assigned_call($date, $time, $logged_in_call, $band, $mode);
+						if ($assigned_call === null) {
+							// all calls are in use in this slot, must reject
+							$_SESSION['slot_full_flash'] = true;
+							log_msg(DEBUG_INFO, "No callsign available for {$date} {$time} (slot full).");
+						} else {
+							log_msg(DEBUG_VERBOSE, "assigned_call is {$assigned_call} for {$date} {$time} {$logged_in_call}.");
+						}
+					}
+
+					//TODO unclear why this is based on conflict count rather than just a flag for this row
+					if ((!EVENT_CALLSIGNS_REQUIRED || $assigned_call) 
+						&& !$band_mode_conflict 
+						&& !$club_station_conflict 
+						&& !$required_club_station_missing) {
+						db_add_schedule_line($db_conn, $date, $time, $logged_in_call, $logged_in_name, $band, $mode, $assigned_call, $club_station, $notes);
+					}
+				}
+			}	
+		} 
+
+		if (isset($_POST['delete_selected'])) {
+			if (!isset($_POST['delete_slots'])) {
+				log_msg(DEBUG_WARNING, "delete button clicked but nothing selected to delete.");
+				$_SESSION['nothing_to_delete_flash'] = true;
+			} else {
+				log_msg(DEBUG_INFO, "processing schedule delete of ".count($_POST['delete_slots'])." slots:");
+				foreach ($_POST['delete_slots'] as $slot) {
+					list($date, $time, $band, $mode) = explode('|', $slot);
+					log_msg(DEBUG_VERBOSE, "processing delete: $date $time $band $mode $logged_in_call");
+					$deleted = db_delete_schedule_line($db_conn, $date, $time, $band, $mode, $logged_in_call);
+					log_msg(DEBUG_VERBOSE, "delete result: " . $deleted);
 				}
 			}
-
-			//TODO unclear why this is based on conflict count rather than just a flag for this row
-			if ((!EVENT_CALLSIGNS_REQUIRED || $assigned_call) && !$band_mode_conflict && !$club_station_conflict && !$required_club_station_missing) {
-				db_add_schedule_line($db_conn, $date, $time, $logged_in_call, $logged_in_name, $band, $mode, $assigned_call, $club_station, $notes);
-			}
-        }
+		}
 
 		// trigger the display of the schedule asif the most recently used show button
 		$mine_only = ($_SESSION['most_recent_show'] === 'mine_only');
@@ -159,22 +184,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$scheduled_only = ($_SESSION['most_recent_show'] === 'scheduled_only');
     }
 
-    if ($edit_authorized && isset($_POST['delete_selected']) && isset($_POST['delete_slots'])) {
-		log_msg(DEBUG_INFO, "processing schedule delete of " . json_encode($_POST['delete_slots']));
-        foreach ($_POST['delete_slots'] as $slot) {
-            list($date, $time, $band, $mode) = explode('|', $slot);
-			log_msg(DEBUG_VERBOSE, "processing delete: $date $time $band $mode $logged_in_call");
-			$deleted = db_delete_schedule_line($db_conn, $date, $time, $band, $mode, $logged_in_call);
-			log_msg(DEBUG_VERBOSE, "delete result: " . $deleted);
-        }
-
-		// trigger the display of the schedule asif the most recently used show button
-		$mine_only = ($_SESSION['most_recent_show'] === 'mine_only');
-		$mine_plus_open = ($_SESSION['most_recent_show'] === 'mine_plus_open');
-		$complete_calendar = ($_SESSION['most_recent_show'] === 'complete_calendar');
-		$scheduled_only = ($_SESSION['most_recent_show'] === 'scheduled_only');
-    }
-	
 	if($mine_only) log_msg(DEBUG_INFO, "display schedule with mine_only");
 	if($mine_plus_open) log_msg(DEBUG_INFO, "display schedule with mine_plus_open");
 	if($complete_calendar) log_msg(DEBUG_INFO, "display schedule with complete_calendar");
@@ -317,6 +326,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <a href="how-do-i-use-this.php" target="_blank">(How do I use this?)</a>
 <a href="visualizer.php">(Switch to "Visualizer" grid)</a>
 </h2>
+
+<?php if (!empty($_SESSION['nothing_to_add_flash'])): ?>
+    <div id="nothing-to-add-flash" style="
+	    background-color: #f8d7da;
+    	color: #721c24;
+    	padding: 10px;
+    	border: 1px solid #f5c6cb;
+    	margin-bottom: 1em;
+    	border-radius: 4px;
+    	max-width: 600px;">        
+		❌ Add slots button clicked but no slots selected for adding.
+    </div>
+<?php unset($_SESSION['nothing_to_add_flash']); endif; ?>
+
+<?php if (!empty($_SESSION['nothing_to_delete_flash'])): ?>
+    <div id="nothing-to-delete-flash" style="
+	    background-color: #f8d7da;
+    	color: #721c24;
+    	padding: 10px;
+    	border: 1px solid #f5c6cb;
+    	margin-bottom: 1em;
+    	border-radius: 4px;
+    	max-width: 600px;">        
+		❌ Delete slots button clicked but no slots selected for deleting.
+    </div>
+<?php unset($_SESSION['nothing_to_delete_flash']); endif; ?>
 
 <?php if (!empty($_SESSION['band_mode_conflict_flash'])): ?>
     <div id="band-mode-conflict-flash" style="
