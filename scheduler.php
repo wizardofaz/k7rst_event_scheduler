@@ -32,20 +32,32 @@ $days_of_week = array_keys(DAY_OPTS); // all days of week selected by default
 $bands_list = BANDS_LIST; // all bands selected by default
 $modes_list = MODES_LIST; // all modes selected by default
 
-// which show button was clicked:
-$show_all_ops = false;
-$show_open_slots = true;
-$mine_only = false;
-$mine_plus_open = false;
-$complete_calendar = false;
-$scheduled_only = false;
-
 $event_start_date = EVENT_START_DATE;
 $event_start_time = EVENT_START_TIME;
 $event_end_date = EVENT_END_DATE;
 $event_end_time = EVENT_END_TIME;
 
-// collect form data
+// Compute today's date in UTC and whether to show the Today button
+$today_utc = gmdate('Y-m-d');
+$show_today_button = (
+    $today_utc >= $event_start_date &&
+    $today_utc <= $event_end_date
+);
+
+// default values for show selections, gated by browse_only
+// these are overridden by filter form post below
+if (auth_is_browse_only()) {
+	log_msg(DEBUG_VERBOSE,"setting browse_only defaults");
+	$show_all_ops = true;
+	$show_open_slots = false;
+} else {
+	log_msg(DEBUG_VERBOSE,"setting normal defaults");
+	$show_all_ops = false;
+	$show_open_slots = true;
+}
+
+// collect filter form data
+// TODO $start_time, $end_time not currently used, but let's keep them.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $start_date = $_POST['start_date'] ?? '';
 	$start_time = ($start_date == $event_start_date ? $event_start_time : "00:00:00");
@@ -59,35 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$show_all_ops = ($_POST['show_me_or_all'] ?? '') == 'show_all_ops';
 	$show_open_slots = ($_POST['show_open_slots'] ?? '') == 'show_open_slots';
 
-	// remember the most recent show button so it can be reused after an add/delete
-	// TODO this doesn't work: if (isset($_POST['mine_only']) || isset($_POST['enter_pressed'])) {
-	if (isset($_POST['mine_only'])) {
-		$mine_only = true;
-		$_SESSION['most_recent_show'] = 'mine_only';
-	} elseif (isset($_POST['mine_plus_open'])) {
-		$mine_plus_open = true;
-		$_SESSION['most_recent_show'] = 'mine_plus_open';
-	} elseif (isset($_POST['complete_calendar'])) {
-		$complete_calendar = true;
-		$_SESSION['most_recent_show'] = 'complete_calendar';
-	} elseif (isset($_POST['scheduled_only'])) {
-		$scheduled_only = true;
-		$_SESSION['most_recent_show'] = 'scheduled_only';
-	} elseif (isset($_POST['show_schedule'])) {
-		//TODO eliminate the old per button variables? 
-		//TODO but for now map new variables into the old ones
-		$mine_only = (!$show_all_ops && !$show_open_slots); // 00
-		$mine_plus_open = (!$show_all_ops && $show_open_slots); // 01
-		$scheduled_only = ($show_all_ops && !$show_open_slots); // 10
-		$complete_calendar = ($show_all_ops && $show_open_slots); // 11
-		if ($mine_only) $_SESSION['most_recent_show'] = 'mine_only';
-		elseif ($mine_plus_open) $_SESSION['most_recent_show'] = 'mine_plus_open';
-		elseif ($scheduled_only) $_SESSION['most_recent_show'] = 'scheduled_only';
-		elseif ($complete_calendar) $_SESSION['most_recent_show'] = 'complete_calendar';
-	}
-
     log_msg(DEBUG_DEBUG, "Incoming POST: " . json_encode($_POST));
-	log_msg(DEBUG_INFO, "most_recent_show: " . (isset($_SESSION['most_recent_show']) ? $_SESSION['most_recent_show'] : '(not set)'));
 }
 
 $db_conn = get_event_db_connection_from_master(EVENT_NAME);
@@ -98,205 +82,191 @@ $club_station_conflict = 0;
 $band_mode_conflict = 0;
 $required_club_station_missing = 0;
 
+// Process schedule additions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $edit_authorized && isset($_POST['add_selected'])) { 
+	if (!isset($_POST['slots'])) { 
+		$_SESSION['nothing_to_add_flash'] = true;
+		log_msg(DEBUG_WARNING, "add button clicked but nothing selected to add.");
+	} else { // some schedule adds have been selected
+		log_msg(DEBUG_INFO, "processing schedule add of ".count($_POST['slots'])." slots:");
+		foreach ($_POST['slots'] as $slot) {
+			$assigned_call = null;
+			list($date, $time) = explode('|', $slot);
+			// $assigned_call = $_POST['assigned_call'][$slot] ?? ''; // assigned call is not an input field
+			$band = $_POST['band'][$slot] ?? null;
+			$mode = $_POST['mode'][$slot] ?? null;
+			$club_station = $_POST['club_station'][$slot] ?? '';
+			$notes = $_POST['notes'][$slot] ?? '';
+			log_msg(DEBUG_INFO, "\tadd info: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
+			// Check club station conflict: more than one op in given date/time/club_station
+			if (!empty($club_station)) {
+				$club_station_conflict_check = db_check_club_station_in_use($db_conn, $date, $time, $club_station);
+				if ($club_station_conflict_check) {
+					$club_station_conflict += 1;
+					$_SESSION['club_station_conflict_flash'] = true;
+					log_msg(DEBUG_INFO, "club_station_conflict: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
+				}
+			}
+			// For some events (e.g. Field Day) "club_station" selection is required
+			if (empty($club_station) && CLUB_STATION_REQUIRED) {
+				$_SESSION['required_club_station_missing_flash'] = true;
+				log_msg(DEBUG_INFO, "required_club_station_missing: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
+				$required_club_station_missing += 1;
+			}
+
+			// Check band/mode conflict: more than one op in given date/time/band/mode
+			$band_mode_conflict_check = db_check_band_mode_conflict($db_conn, $date, $time, $band, $mode);
+			if ($band_mode_conflict_check) {
+				$band_mode_conflict += 1;
+				$_SESSION['band_mode_conflict_flash'] = true;
+				log_msg(DEBUG_INFO, "band_mode_conflict: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
+			}
+
+			if(EVENT_CALLSIGNS_REQUIRED) {
+				$assigned_call = choose_assigned_call($date, $time, $logged_in_call, $band, $mode);
+				if ($assigned_call === null) {
+					// all calls are in use in this slot, must reject
+					$_SESSION['slot_full_flash'] = true;
+					log_msg(DEBUG_INFO, "No callsign available for {$date} {$time} (slot full).");
+				} else {
+					log_msg(DEBUG_VERBOSE, "assigned_call is {$assigned_call} for {$date} {$time} {$logged_in_call}.");
+				}
+			}
+
+			//TODO unclear why this is based on conflict count rather than just a flag for this row
+			if ((!EVENT_CALLSIGNS_REQUIRED || $assigned_call) 
+				&& !$band_mode_conflict 
+				&& !$club_station_conflict 
+				&& !$required_club_station_missing) {
+				db_add_schedule_line($db_conn, $date, $time, $logged_in_call, $logged_in_name, $band, $mode, $assigned_call, $club_station, $notes);
+			}
+		}
+	}	
+} 
+
+// Process schedule deletions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $edit_authorized && isset($_POST['delete_selected'])) { 
+	if (!isset($_POST['delete_slots'])) { 
+		log_msg(DEBUG_WARNING, "delete button clicked but nothing selected to delete.");
+		$_SESSION['nothing_to_delete_flash'] = true;
+	} else { // schedule deletes have been selected
+		log_msg(DEBUG_INFO, "processing schedule delete of ".count($_POST['delete_slots'])." slots:");
+		foreach ($_POST['delete_slots'] as $slot) {
+			list($date, $time, $band, $mode) = explode('|', $slot);
+			log_msg(DEBUG_VERBOSE, "processing delete: $date $time $band $mode $logged_in_call");
+			$deleted = db_delete_schedule_line($db_conn, $date, $time, $band, $mode, $logged_in_call);
+			log_msg(DEBUG_VERBOSE, "delete result: " . $deleted);
+		}
+	}
+}
+
 // build the table to be displayed, optionally with add/delete buttons (if authorized)
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($edit_authorized) {
-		if (isset($_POST['add_selected'])) { 
-			if (!isset($_POST['slots'])) {
-				$_SESSION['nothing_to_add_flash'] = true;
-				log_msg(DEBUG_WARNING, "add button clicked but nothing selected to add.");
+// this code runs for POST or the initial GET
+
+if ($start_date && !$end_date) $end_date = $start_date;
+if (!$start_date && $end_date) $start_date = $end_date;
+if (!$start_date && !$end_date) {
+	$start_date = $event_start_date;
+	$end_date = $event_end_date;
+}
+
+log_msg(DEBUG_INFO, "start/end dates: " . $start_date . " " . $end_date);
+
+$dates = [];
+$cur = strtotime($start_date);
+$end = strtotime($end_date);
+while ($cur <= $end) {
+	$day = date('w', $cur);
+	if (in_array('all', $days_of_week) || in_array((string)$day, $days_of_week)) {
+		$dates[] = date('Y-m-d', $cur);
+	}
+	$cur = strtotime('+1 day', $cur);
+}
+
+$times = [];
+if (in_array('all', $time_slots)) {
+	foreach (TIMES_BY_SLOT as $block) $times = array_merge($times, $block);
+} else {
+	foreach ($time_slots as $slot) {
+		if (isset(TIMES_BY_SLOT[$slot])) {
+			$times = array_merge($times, TIMES_BY_SLOT[$slot]);
+		}
+	}
+}
+
+log_msg(DEBUG_VERBOSE, "dates[]: " . json_encode($dates));
+log_msg(DEBUG_VERBOSE, "times[]: " . json_encode($times));
+log_msg(DEBUG_VERBOSE, "bands[]: " . json_encode($bands_list));
+log_msg(DEBUG_VERBOSE, "modes[]: " . json_encode($modes_list));
+
+$use_counts = null; // accumulator for usage counts of CALL, BAND, MODE, etc
+foreach ($dates as $date) {
+	foreach ($times as $time) {
+		if ($date == $event_start_date && $time < $event_start_time) continue;
+		if ($date == $event_end_date && $time >= $event_end_time) continue;
+		$r = db_get_schedule_for_date_time($db_conn, $date, $time);
+		$none_are_me = true;
+		$schedule_count_in_this_slot = $r->num_rows;
+		while ($r->num_rows > 0 && $row = $r->fetch_assoc()) {
+			$op = $row ? strtoupper($row['op_call']) : null;
+			$this_is_me = ($op === $logged_in_call);
+			if ($this_is_me) $none_are_me = false;
+			$name = $row ? $row['op_name'] : null;
+			$band = $row ? $row['band'] : null;
+			$mode = $row ? $row['mode'] : null;
+			log_msg(DEBUG_VERBOSE, "Testing schedule line on filters: $date $time $band $mode");
+			$assigned_call = $row['assigned_call'] ?? '';
+			$club_station = $row['club_station'] ?? '';
+			$notes = $row['notes'] ?? '';
+			$filtering_this_line = false;
+			// apply band and mode filters
+			if (!in_array($band, $bands_list) || !in_array($mode, $modes_list)) $filtering_this_line = true;
+			// skip open slots when showing only scheduled
+			elseif (!$show_open_slots && !$op) $filtering_this_line = true;  
+			// skip lines for other ops when showing only mine
+			elseif (!$show_all_ops && !$this_is_me) $filtering_this_line = true;
+			if ($filtering_this_line) {
+				log_msg(DEBUG_VERBOSE, "Schedule line got filtered out");
 			} else {
-				log_msg(DEBUG_INFO, "processing schedule add of ".count($_POST['slots'])." slots:");
-				foreach ($_POST['slots'] as $slot) {
-					$assigned_call = null;
-					list($date, $time) = explode('|', $slot);
-					// $assigned_call = $_POST['assigned_call'][$slot] ?? ''; // assigned call is not an input field
-					$band = $_POST['band'][$slot] ?? null;
-					$mode = $_POST['mode'][$slot] ?? null;
-					$club_station = $_POST['club_station'][$slot] ?? '';
-					$notes = $_POST['notes'][$slot] ?? '';
-					log_msg(DEBUG_INFO, "\tadd info: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
-					// Check club station conflict: more than one op in given date/time/club_station
-					if (!empty($club_station)) {
-						$club_station_conflict_check = db_check_club_station_in_use($db_conn, $date, $time, $club_station);
-						if ($club_station_conflict_check) {
-							$club_station_conflict += 1;
-							$_SESSION['club_station_conflict_flash'] = true;
-							log_msg(DEBUG_INFO, "club_station_conflict: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
-						}
-					}
-					// For some events (e.g. Field Day) "club_station" selection is required
-					if (empty($club_station) && CLUB_STATION_REQUIRED) {
-						$_SESSION['required_club_station_missing_flash'] = true;
-						log_msg(DEBUG_INFO, "required_club_station_missing: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
-						$required_club_station_missing += 1;
-					}
-
-					// Check band/mode conflict: more than one op in given date/time/band/mode
-					$band_mode_conflict_check = db_check_band_mode_conflict($db_conn, $date, $time, $band, $mode);
-					if ($band_mode_conflict_check) {
-						$band_mode_conflict += 1;
-						$_SESSION['band_mode_conflict_flash'] = true;
-						log_msg(DEBUG_INFO, "band_mode_conflict: date=" . $date . ", time=" . $time . ", call=" . $logged_in_call . ", band=" . $band . ", mode=" . $mode . ", club_station=" . $club_station . ", notes=" . $notes);
-					}
-
-					if(EVENT_CALLSIGNS_REQUIRED) {
-						$assigned_call = choose_assigned_call($date, $time, $logged_in_call, $band, $mode);
-						if ($assigned_call === null) {
-							// all calls are in use in this slot, must reject
-							$_SESSION['slot_full_flash'] = true;
-							log_msg(DEBUG_INFO, "No callsign available for {$date} {$time} (slot full).");
-						} else {
-							log_msg(DEBUG_VERBOSE, "assigned_call is {$assigned_call} for {$date} {$time} {$logged_in_call}.");
-						}
-					}
-
-					//TODO unclear why this is based on conflict count rather than just a flag for this row
-					if ((!EVENT_CALLSIGNS_REQUIRED || $assigned_call) 
-						&& !$band_mode_conflict 
-						&& !$club_station_conflict 
-						&& !$required_club_station_missing) {
-						db_add_schedule_line($db_conn, $date, $time, $logged_in_call, $logged_in_name, $band, $mode, $assigned_call, $club_station, $notes);
-					}
-				}
-			}	
-		} 
-
-		if (isset($_POST['delete_selected'])) {
-			if (!isset($_POST['delete_slots'])) {
-				log_msg(DEBUG_WARNING, "delete button clicked but nothing selected to delete.");
-				$_SESSION['nothing_to_delete_flash'] = true;
-			} else {
-				log_msg(DEBUG_INFO, "processing schedule delete of ".count($_POST['delete_slots'])." slots:");
-				foreach ($_POST['delete_slots'] as $slot) {
-					list($date, $time, $band, $mode) = explode('|', $slot);
-					log_msg(DEBUG_VERBOSE, "processing delete: $date $time $band $mode $logged_in_call");
-					$deleted = db_delete_schedule_line($db_conn, $date, $time, $band, $mode, $logged_in_call);
-					log_msg(DEBUG_VERBOSE, "delete result: " . $deleted);
-				}
+				// Not filtered out - put it in the table to display
+				log_msg(DEBUG_VERBOSE, "Schedule line was not filtered");
+				$table_rows[] = compact('date', 'time', 'band', 'mode', 'assigned_call', 'op', 'name', 'club_station', 'notes');
+				accumulate_use_count($use_counts, 'EVENT CALL', $assigned_call);
+				accumulate_use_count($use_counts, 'OP', $op);
+				accumulate_use_count($use_counts, 'BAND', $band);
+				accumulate_use_count($use_counts, 'MODE', $mode);
 			}
 		}
 
-		// trigger the display of the schedule asif the most recently used show button
-		$mine_only = ($_SESSION['most_recent_show'] === 'mine_only');
-		$mine_plus_open = ($_SESSION['most_recent_show'] === 'mine_plus_open');
-		$complete_calendar = ($_SESSION['most_recent_show'] === 'complete_calendar');
-		$scheduled_only = ($_SESSION['most_recent_show'] === 'scheduled_only');
-    }
+		// add an unscheduled row if current call is not scheduled in this slot, for the possibility of adding "me",
+		// because we can schedule multiple ops in one slot (other mode and/or other special event callsign).
+		// Or add an open line for otherwise empty slots when "complete_schedule" is requested.
 
-	if($mine_only) log_msg(DEBUG_INFO, "display schedule with mine_only");
-	if($mine_plus_open) log_msg(DEBUG_INFO, "display schedule with mine_plus_open");
-	if($complete_calendar) log_msg(DEBUG_INFO, "display schedule with complete_calendar");
-	if($scheduled_only) log_msg(DEBUG_INFO, "display schedule with scheduled_only");
+		// If we're showing open slots and I'm not in current slot, offer me an open slot here
+		$offer_open_slot = ($show_open_slots && $none_are_me); 
+		if ($offer_open_slot) log_msg(DEBUG_DEBUG, "tentative offer of open slot because I'm not scheduled");
 
-	// if any "show" button was pressed
-    if ($complete_calendar || $mine_only || $mine_plus_open || $scheduled_only) {
-        if ($start_date && !$end_date) $end_date = $start_date;
-        if (!$start_date && $end_date) $start_date = $end_date;
-        if (!$start_date && !$end_date) {
-            $start_date = $event_start_date;
-            $end_date = $event_end_date;
-        }
-		
-		log_msg(DEBUG_INFO, "start/end dates: " . $start_date . " " . $end_date);
-
-        $dates = [];
-        $cur = strtotime($start_date);
-        $end = strtotime($end_date);
-        while ($cur <= $end) {
-            $day = date('w', $cur);
-            if (in_array('all', $days_of_week) || in_array((string)$day, $days_of_week)) {
-                $dates[] = date('Y-m-d', $cur);
-            }
-            $cur = strtotime('+1 day', $cur);
-        }
-
-        $times = [];
-        if (in_array('all', $time_slots)) {
-            foreach (TIMES_BY_SLOT as $block) $times = array_merge($times, $block);
-        } else {
-            foreach ($time_slots as $slot) {
-                if (isset(TIMES_BY_SLOT[$slot])) {
-                    $times = array_merge($times, TIMES_BY_SLOT[$slot]);
-                }
-            }
-        }
-
-		log_msg(DEBUG_VERBOSE, "dates[]: " . json_encode($dates));
-		log_msg(DEBUG_VERBOSE, "times[]: " . json_encode($times));
-		log_msg(DEBUG_VERBOSE, "bands[]: " . json_encode($bands_list));
-		log_msg(DEBUG_VERBOSE, "modes[]: " . json_encode($modes_list));
-
-		$use_counts = null; // accumulator for usage counts of CALL, BAND, MODE, etc
-        foreach ($dates as $date) {
-            foreach ($times as $time) {
-				if ($date == $event_start_date && $time < $event_start_time) continue;
-				if ($date == $event_end_date && $time >= $event_end_time) continue;
-				$r = db_get_schedule_for_date_time($db_conn, $date, $time);
-				$none_are_me = true;
-				$schedule_count_in_this_slot = $r->num_rows;
-				while ($r->num_rows > 0 && $row = $r->fetch_assoc()) {
-					$op = $row ? strtoupper($row['op_call']) : null;
-					$this_is_me = ($op === $logged_in_call);
-					if ($this_is_me) $none_are_me = false;
-					$name = $row ? $row['op_name'] : null;
-					$band = $row ? $row['band'] : null;
-					$mode = $row ? $row['mode'] : null;
-					log_msg(DEBUG_VERBOSE, "Testing schedule line on filters: $date $time $band $mode");
-					$assigned_call = $row['assigned_call'] ?? '';
-					$club_station = $row['club_station'] ?? '';
-					$notes = $row['notes'] ?? '';
-					$filtering_this_line = false;
-					// apply band and mode filters
-					if (!in_array($band, $bands_list) || !in_array($mode, $modes_list)) $filtering_this_line = true;
-					// skip open slots when showing only scheduled
-					elseif ($scheduled_only && !$op) $filtering_this_line = true;  
-					// skip lines for other ops when showing only mine
-					elseif (($mine_only || $mine_plus_open) && !$this_is_me) $filtering_this_line = true;
-					if ($filtering_this_line) {
-						log_msg(DEBUG_VERBOSE, "Schedule line got filtered out");
-					} else {
-						// Not filtered out - put it in the table to display
-						log_msg(DEBUG_VERBOSE, "Schedule line was not filtered");
-						$table_rows[] = compact('date', 'time', 'band', 'mode', 'assigned_call', 'op', 'name', 'club_station', 'notes');
-						accumulate_use_count($use_counts, 'EVENT CALL', $assigned_call);
-						accumulate_use_count($use_counts, 'OP', $op);
-						accumulate_use_count($use_counts, 'BAND', $band);
-						accumulate_use_count($use_counts, 'MODE', $mode);
-					}
-				}
-
-				// add an unscheduled row if current call is not scheduled in this slot, for the possibility of adding "me",
-				// because we can schedule multiple ops in one slot (other mode and/or other special event callsign).
-				// Or add an open line for otherwise empty slots when "complete_schedule" is requested.
-
-				// If we're showing open slots and I'm not in current slot, offer me an open slot here
-				$offer_open_slot = ($mine_plus_open || $complete_calendar) && $none_are_me; 
-				if ($offer_open_slot) log_msg(DEBUG_DEBUG, "tentative offer of open slot because I'm not scheduled");
-
-				// Except if event callsigns are required and all are used, 
-				// or club station is required and all are used
-				// in which case no open slot is offered.
-				if (EVENT_CALLSIGNS_REQUIRED && $schedule_count_in_this_slot >= count(EVENT_CALLSIGNS)) {
-					$offer_open_slot = false;
-					log_msg(DEBUG_DEBUG, "event callsigns all used up, no offer of open slot");
-				}
-				if (CLUB_STATION_REQUIRED && $schedule_count_in_this_slot >= count(CLUB_STATIONS)) {
-					$offer_open_slot = false;
-					log_msg(DEBUG_DEBUG, "club stations all used up, no offer of open slot");
-				}
-				if ($offer_open_slot) {
-					log_msg(DEBUG_VERBOSE, "Adding an open line for this slot");
-					$assigned_call = $band = $mode = $op = $name = $club_station = $notes = null;
-					$table_rows[] = compact('date', 'time', 'band', 'mode', 'assigned_call', 'op', 'name', 'club_station', 'notes');
-				} else {
-					log_msg(DEBUG_VERBOSE, "Won't show an open line for this slot");
-				}
-            }
-        }
-    }
-	log_msg(DEBUG_DEBUG, "Formatting page with result: " . json_encode($table_rows));
+		// Except if event callsigns are required and all are used, 
+		// or club station is required and all are used
+		// in which case no open slot is offered.
+		if (EVENT_CALLSIGNS_REQUIRED && $schedule_count_in_this_slot >= count(EVENT_CALLSIGNS)) {
+			$offer_open_slot = false;
+			log_msg(DEBUG_DEBUG, "event callsigns all used up, no offer of open slot");
+		}
+		if (CLUB_STATION_REQUIRED && $schedule_count_in_this_slot >= count(CLUB_STATIONS)) {
+			$offer_open_slot = false;
+			log_msg(DEBUG_DEBUG, "club stations all used up, no offer of open slot");
+		}
+		if ($offer_open_slot) {
+			log_msg(DEBUG_VERBOSE, "Adding an open line for this slot");
+			$assigned_call = $band = $mode = $op = $name = $club_station = $notes = null;
+			$table_rows[] = compact('date', 'time', 'band', 'mode', 'assigned_call', 'op', 'name', 'club_station', 'notes');
+		} else {
+			log_msg(DEBUG_VERBOSE, "Won't show an open line for this slot");
+		}
+	}
 }
+log_msg(DEBUG_DEBUG, "Formatting page with result: " . json_encode($table_rows));
 
 ?>
 
@@ -430,15 +400,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     		</span>
   		</div>
 		<div class="section">
-			<strong>Select Date Range to view:</strong><br>
+			<strong>Select Date Range to view:</strong>&nbsp; &nbsp;(Event period: <strong><?= htmlspecialchars($event_start_date) ?> <?= htmlspecialchars($event_start_time) ?></strong> to <strong><?= htmlspecialchars($event_end_date) ?> <?= htmlspecialchars($event_end_time) ?> UTC</strong>)<br>
 			<label>Start:</label>
 			<input type="date" name="start_date" value="<?= htmlspecialchars($start_date ?: $event_start_date) ?>"
 				min="<?= htmlspecialchars($event_start_date) ?>" max="<?= htmlspecialchars($event_end_date) ?>" id="start_date" required>
 			<label>End:</label>
 			<input type="date" name="end_date" value="<?= htmlspecialchars($end_date ?: $start_date ?: $event_end_date) ?>"
 				min="<?= htmlspecialchars($event_start_date) ?>" max="<?= htmlspecialchars($event_end_date) ?>" id="end_date" required>
-			&nbsp; &nbsp;(Event starts: <strong><?= htmlspecialchars($event_start_date) ?> <?= htmlspecialchars($event_start_time) ?> (UTC)</strong> Event ends: <strong><?= htmlspecialchars($event_end_date) ?> <?= htmlspecialchars($event_end_time) ?> (UTC)</strong>)<br>
-
+			<?php if ($show_today_button): ?>
+				<!-- Today (UTC) button, shown only when today's UTC date is in the event window -->
+				<button type="button" id="today_button">Shortcut: set start/end to today</button>
+			<?php endif; ?>
 			<!-- Error message div -->
 			<div id="date_error" style="color: red; display: none;">End date cannot be earlier than the start date.</div>
 		</div>
@@ -469,11 +441,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				document.getElementById("date_error").style.display = "none";
 			}
 		}
+		document.addEventListener('DOMContentLoaded', function () {
+			var todayBtn = document.getElementById('today_button');
+			if (!todayBtn) return;  // Button not rendered if outside event window
+
+			todayBtn.addEventListener('click', function () {
+				var today = "<?= htmlspecialchars($today_utc, ENT_QUOTES) ?>";
+				var startInput = document.getElementById('start_date');
+				var endInput   = document.getElementById('end_date');
+
+				if (startInput) startInput.value = today;
+				if (endInput)   endInput.value   = today;
+
+				// Clear any existing date error when we set a valid range
+				var err = document.getElementById('date_error');
+				if (err) err.style.display = 'none';
+			});
+		});
 		</script>
 		
 		<!-- See JavaScript handlers at the bottom for how dynamic checkbox behavior is handled in these two <div> sections -->
 		<div class="section">
-			<strong>What parts of the day would you like to view (UTC)?</strong><br>
+			<strong>What parts of the day would you like to view? (UTC)</strong><br>
 			<?php
 			foreach (TIME_OPTS as $val => $label): ?>
 				<?php if (strtoupper($val) === 'ALL'): ?>
@@ -531,26 +520,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 	<!-- See JavaScript handlers at the bottom for how enter key is handled -->
 	<div class="section">
-		<!--
-    	<strong>Click the show button below to display the schedule filtered by selections above. <br></strong>
-		<strong>To add to your schedule check "Include open slots" above, then click the checkbox on each open row you want to add.<br></strong>
-		<strong>To delete some of your schedule, click the "delete" checkbox on specific rows of your schedule.<br></strong>
-		<strong>After making selections, scroll to the bottom (or ctrl-end) and use the "Add Selected" or "Delete Selected".<br></strong>
-		<br><br>
-		-->
-    	<input type="hidden" name="enter_pressed" value="Enter Pressed">
     	<div class="button-container">
         	<input type="submit" name="show_schedule" value="Show Schedule (use filter selections above)" 
 				title="Show the schedule according to selections above. Make sure to select 'Include open slots' if you want to be able to add to your schedule.">
 			<button type="button" onclick="openClubStationHours()">When are the club stations available?</button>
-			<!--
-        	<input type="submit" name="complete_calendar" value="Show Complete Calendar (scheduled and open)">
-        	<input type="submit" name="scheduled_only" value="Show Scheduled Slots Only">
-			<?php if ($edit_authorized): ?>
-	        	<input type="submit" name="mine_plus_open" value="Show My Schedule and Open Slots">
-    	    	<input type="submit" name="mine_only" value="Show My Schedule Only">
-			<?php endif; ?>
-			-->
     	</div>
 	</div>
 
@@ -805,19 +778,22 @@ document.addEventListener('DOMContentLoaded', function() {
 		});
 	});
 
- 	// Listen for the Enter key press
-	document.querySelector('form').addEventListener('keydown', function(event) {
-        if (event.key === 'Enter') {
-            // Prevent form submission by default
-            //event.preventDefault();
+    // Listen for the Enter key press and make it act like "Show Schedule"
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && event.target.tagName !== 'TEXTAREA') {
+                // Stop the default submit behavior
+                event.preventDefault();
 
-            // Set the hidden input field to indicate Enter was pressed
-            document.getElementById('enter_pressed').value = 'Enter Pressed';
-
-	        // Optionally, you can trigger a specific submit button based on your logic
-            // document.querySelector('input[name="mine_only"]').click(); 
-        }
-    }); 
+                // Trigger the Show Schedule button
+                const showBtn = form.querySelector('input[name="show_schedule"]');
+                if (showBtn) {
+                    showBtn.click();
+                }
+            }
+        });
+    }
 });
 </script>
 
