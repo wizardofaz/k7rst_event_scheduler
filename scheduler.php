@@ -46,7 +46,7 @@ $show_today_button = (
 
 // default values for show selections, gated by browse_only
 // these are overridden by filter form post below
-if (auth_is_browse_only()) {
+if (!auth_is_authenticated()) {
 	log_msg(DEBUG_VERBOSE,"setting browse_only defaults");
 	$show_all_ops = true;
 	$show_open_slots = false;
