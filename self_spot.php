@@ -240,7 +240,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (stripos($comment, 'cactus') === false) $comment = trim($comment . ' CACTUS Special Event');
 
     if (empty($errors)) {
-        $dx_cmd = sprintf('dx %d %s %s', $freq_khz, $event_call, $comment);
+        if (defined('DXSPOT_CMD')) $spot_cmd = DXSPOT_CMD;
+        else $spot_cmd = 'dx';
+        $dx_cmd = sprintf($spot_cmd . ' %d %s %s', $freq_khz, $event_call, $comment);
         $host = $node['host'] ?? '';
         $port = (int)($node['port'] ?? 23);
 
