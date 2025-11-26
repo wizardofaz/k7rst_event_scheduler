@@ -169,6 +169,9 @@ if (!$start_date && !$end_date) {
 	$start_date = $event_start_date;
 	$end_date = $event_end_date;
 }
+if ($today_utc > $start_date && $today_utc <= $end_date) {
+	$start_date = $today_utc;
+}
 
 log_msg(DEBUG_INFO, "start/end dates: " . $start_date . " " . $end_date);
 
@@ -409,7 +412,7 @@ log_msg(DEBUG_DEBUG, "Formatting page with result: " . json_encode($table_rows))
 				min="<?= htmlspecialchars($event_start_date) ?>" max="<?= htmlspecialchars($event_end_date) ?>" id="end_date" required>
 			<?php if ($show_today_button): ?>
 				<!-- Today (UTC) button, shown only when today's UTC date is in the event window -->
-				<button type="button" id="today_button">Shortcut: set start/end to today</button>
+				<button type="button" id="today_button">Shortcut: set start/end to today/tomorrow</button>
 			<?php endif; ?>
 			<!-- Error message div -->
 			<div id="date_error" style="color: red; display: none;">End date cannot be earlier than the start date.</div>
@@ -451,7 +454,12 @@ log_msg(DEBUG_DEBUG, "Formatting page with result: " . json_encode($table_rows))
 				var endInput   = document.getElementById('end_date');
 
 				if (startInput) startInput.value = today;
-				if (endInput)   endInput.value   = today;
+				if (endInput) {
+					const d = new Date(today);         // parse "YYYY-MM-DD"
+					d.setDate(d.getDate() + 1);        // add one day
+					const tomorrow = d.toISOString().split('T')[0];  // back to "YYYY-MM-DD"
+					endInput.value = tomorrow;
+				}
 
 				// Clear any existing date error when we set a valid range
 				var err = document.getElementById('date_error');
@@ -661,7 +669,7 @@ log_msg(DEBUG_DEBUG, "Formatting page with result: " . json_encode($table_rows))
 	$categories = get_use_categories($use_counts);
 
 	if (defined('SHOW_USAGE_COUNTS') && SHOW_USAGE_COUNTS && !empty($categories)): ?>
-		<h2>Usage Summary</h2>
+		<h2>Allocation Summary</h2>
 
 		<?php foreach ($categories as $category): 
 			$counts = get_use_counts($use_counts, $category);
