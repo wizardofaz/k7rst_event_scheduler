@@ -296,4 +296,74 @@ function event_lookup_op_schedule($date, $time, $op) {
     return $matched;
 }
 
+// return all or selected qsos of the event 
+function get_event_qsos($non_event_calls = false, 
+        $select_station_callsign = null, $select_operator = null, 
+        $select_date = null, $select_time = null) 
+{
+
+    // columns to select from logbook are in defined constant ADIF_EXPORT_COLUMNS
+    // as ordered pairs: { {column_name, adif_field_name}, ...}
+    // TODO base query and everything downstream from query on AIDF_EXPORT_COLUMNS
+
+    $conn = get_event_qsolog_connection();
+    if (!$conn) {
+        log_msg(DEBUG_ERROR, "could not get connection to qso log db");
+        return null;
+    }
+
+    $rows = [];
+
+    // Safety: if no callsigns, nothing to do.
+    if (!defined('EVENT_CALLSIGNS') || !is_array(EVENT_CALLSIGNS) || count(EVENT_CALLSIGNS) === 0) {
+        log_msg(DEBUG_ERROR, "No event callsigns defined.");
+    } else {
+        // Build start/end timestamps from event constants (assumed UTC)
+        $start_ts = EVENT_START_DATE . ' ' . EVENT_START_TIME;
+        $end_ts   = EVENT_END_DATE   . ' ' . EVENT_END_TIME;
+
+        // 1) Build placeholders for IN clause
+        $placeholders = implode(',', array_fill(0, count(EVENT_CALLSIGNS), '?'));
+
+        // 2) Build SQL
+        if ($non_event_calls)   $callsign_selector = "AND COL_STATION_CALLSIGN NOT IN ($placeholders)";
+        else                    $callsign_selector = "AND COL_STATION_CALLSIGN     IN ($placeholders)";
+        $sql = "
+            SELECT
+                COL_TIME_ON AS 'time',
+                COL_CALL AS 'call',
+                COL_BAND AS 'band',
+                COL_MODE AS 'mode',
+                COL_STATION_CALLSIGN AS 'station_callsign',
+                COL_OPERATOR AS 'operator'
+            FROM TABLE_HRD_CONTACTS_V01
+            WHERE COL_TIME_ON BETWEEN ? AND ? 
+            " . $callsign_selector . "
+        ";
+
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            log_msg(DEBUG_ERROR,"Prepare failed: " . $conn->error);
+        } else {
+            // 3) Bind parameters (all strings)
+            // First two are start/end timestamps, then the list of callsigns
+            $types = 'ss' . str_repeat('s', count(EVENT_CALLSIGNS)); // Spread operator requires PHP 5.6+
+            $stmt->bind_param($types, $start_ts, $end_ts, ...EVENT_CALLSIGNS);
+
+            if (!$stmt->execute()) {
+                log_msg(DEBUG_ERROR,"Execute failed: " . $stmt->error);
+            } else {
+                $result = $stmt->get_result();
+                if ($result) {
+                    while ($row = $result->fetch_assoc()) {
+                        $rows[] = $row;
+                    }
+                    $result->free();
+                }
+            }
+            $stmt->close();
+        }
+    }
+    return $rows;
+}
 
