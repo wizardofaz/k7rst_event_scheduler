@@ -1,11 +1,27 @@
 <?php
 // config.php — dynamic event config loader
 
-ini_set('session.gc_maxlifetime', 7200);
-// Best: set via php.ini or .user.ini, but runtime works too:
-ini_set('session.cookie_secure', '1');
-ini_set('session.cookie_httponly', '1');
-ini_set('session.cookie_samesite', 'Lax'); 
+/* test driver - does not run unless this file is invoked from the URL */
+/******
+//$test_mode = is_entry_script(__FILE__); 
+//if ($test_mode) {
+if (true) {
+    //header('Content-Type: text/plain; charset=utf-8');
+
+    echo "Test driver for " . basename(__FILE__) . "\n\n";
+    var_dump($_GET);
+    
+}
+******/
+
+// adjust ini session settings only if session isn't already active 
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    ini_set('session.gc_maxlifetime', 7200);
+    // Best: set via php.ini or .user.ini, but runtime works too:
+    ini_set('session.cookie_secure', '1');
+    ini_set('session.cookie_httponly', '1');
+    ini_set('session.cookie_samesite', 'Lax'); 
+}
 
 require_once __DIR__ . '/auth.php'; 
 require_once __DIR__ . '/logging.php'; // debug logging helpers
@@ -32,11 +48,9 @@ if (strpos(__dir__ . '/', '.alpha/') !== false) {
 
 $secrets_path = secrets_path();
 
-require_once __DIR__ . '/util.php';
 require_once $secrets_path; // master database password lives here
 require_once __DIR__ . '/master.php';
 require_once __DIR__ . '/event_db.php';
-require_once __DIR__ . '/auth.php';
 
 auth_initialize_if_absent();
 
@@ -51,15 +65,25 @@ $isIndex  = ($here === 'index.php');
 $event_names = array_column(list_events_from_master_with_status(), 'event_name');
 $isValidUrlEvent = $eventFromUrl && in_array($eventFromUrl, $event_names, true);
 
+/*******
+if ($test_mode) {
+    echo "event from session: $eventFromSess \n";
+    echo "event from URL: $eventFromUrl \n";
+    echo "isValidUrlEvent? $isValidUrlEvent=".($isValidUrlEvent ? "true":"false")."\n";
+}
+********/    
+
 // 1) If NO session event yet and ?event= is valid → adopt on ANY page (first-touch)
 if (!$eventFromSess && $isValidUrlEvent) {
     auth_set_event($eventFromUrl);
+//    if ($test_mode) echo "auth_set_event($eventFromUrl)\n";
     log_msg("DEBUG_VERBOSE", "no session event, url event is valid, session set to ".auth_get_event());
 }
 
 // 2) If already have a session event, only allow URL-based switching on index.php
 if ($eventFromSess && $isValidUrlEvent && $isIndex && $eventFromUrl !== $eventFromSess) {
     auth_set_event($eventFromUrl);
+//    if ($test_mode) echo "auth_set_event($eventFromUrl)\n";
     log_msg("DEBUG_VERBOSE", "have session event, url event is valid, here=index, switching session to ".auth_get_event());
 }
 
@@ -67,13 +91,14 @@ if ($eventFromSess && $isValidUrlEvent && $isIndex && $eventFromUrl !== $eventFr
 // If not index, valid event must be given on url. 
 if (!auth_get_event() && $isIndex && isset($event_names[0])) {
     auth_set_event($event_names[0]);
+//    if ($test_mode) echo "auth_set_event($event_names[0]) as default\n";
     log_msg("DEBUG_VERBOSE", "no session event, we are index.php, allow default, session set to ".auth_get_event());
 }
 
 // 4) Finally if there is still no event chosen, abort
 if (!auth_get_event()) {
     echo "No valid event could be determined from URL or current session state.";
-    log_msg("DEBUG_VERBOSE", "no event could be chosen, aborting");
+    log_msg("DEBUG_VERBOSE", "no event could be determined, aborting");
     auth_logout();
     exit;
 }

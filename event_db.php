@@ -297,15 +297,13 @@ function event_lookup_op_schedule($date, $time, $op) {
 }
 
 // return all or selected qsos of the event 
-function get_event_qsos($non_event_calls = false, 
-        $select_station_callsign = null, $select_operator = null, 
-        $select_date = null, $select_time = null) 
-{
-
-    // columns to select from logbook are in defined constant ADIF_EXPORT_COLUMNS
-    // as ordered pairs: { {column_name, adif_field_name}, ...}
-    // TODO base query and everything downstream from query on AIDF_EXPORT_COLUMNS
-
+function get_event_qsos(
+    $non_event_calls = false, 
+    $select_station_callsign = null, 
+    $select_operator = null, 
+    $select_date = null,      // not used yet
+    $select_time = null       // not used yet
+) {
     $conn = get_event_qsolog_connection();
     if (!$conn) {
         log_msg(DEBUG_ERROR, "could not get connection to qso log db");
@@ -317,53 +315,101 @@ function get_event_qsos($non_event_calls = false,
     // Safety: if no callsigns, nothing to do.
     if (!defined('EVENT_CALLSIGNS') || !is_array(EVENT_CALLSIGNS) || count(EVENT_CALLSIGNS) === 0) {
         log_msg(DEBUG_ERROR, "No event callsigns defined.");
-    } else {
-        // Build start/end timestamps from event constants (assumed UTC)
-        $start_ts = EVENT_START_DATE . ' ' . EVENT_START_TIME;
-        $end_ts   = EVENT_END_DATE   . ' ' . EVENT_END_TIME;
-
-        // 1) Build placeholders for IN clause
-        $placeholders = implode(',', array_fill(0, count(EVENT_CALLSIGNS), '?'));
-
-        // 2) Build SQL
-        if ($non_event_calls)   $callsign_selector = "AND COL_STATION_CALLSIGN NOT IN ($placeholders)";
-        else                    $callsign_selector = "AND COL_STATION_CALLSIGN     IN ($placeholders)";
-        $sql = "
-            SELECT
-                COL_TIME_ON AS 'time',
-                COL_CALL AS 'call',
-                COL_BAND AS 'band',
-                COL_MODE AS 'mode',
-                COL_STATION_CALLSIGN AS 'station_callsign',
-                COL_OPERATOR AS 'operator'
-            FROM TABLE_HRD_CONTACTS_V01
-            WHERE COL_TIME_ON BETWEEN ? AND ? 
-            " . $callsign_selector . "
-        ";
-
-        $stmt = $conn->prepare($sql);
-        if (!$stmt) {
-            log_msg(DEBUG_ERROR,"Prepare failed: " . $conn->error);
-        } else {
-            // 3) Bind parameters (all strings)
-            // First two are start/end timestamps, then the list of callsigns
-            $types = 'ss' . str_repeat('s', count(EVENT_CALLSIGNS)); // Spread operator requires PHP 5.6+
-            $stmt->bind_param($types, $start_ts, $end_ts, ...EVENT_CALLSIGNS);
-
-            if (!$stmt->execute()) {
-                log_msg(DEBUG_ERROR,"Execute failed: " . $stmt->error);
-            } else {
-                $result = $stmt->get_result();
-                if ($result) {
-                    while ($row = $result->fetch_assoc()) {
-                        $rows[] = $row;
-                    }
-                    $result->free();
-                }
-            }
-            $stmt->close();
-        }
+        return $rows;
     }
+
+    // Build start/end timestamps from event constants (assumed UTC)
+    $start_ts = EVENT_START_DATE . ' ' . EVENT_START_TIME;
+    $end_ts   = EVENT_END_DATE   . ' ' . EVENT_END_TIME;
+
+    // Base SQL
+    $sql = "
+        SELECT
+            COL_TIME_ON AS `time`,
+            COL_CALL AS `call`,
+            COL_BAND AS `band`,
+            COL_MODE AS `mode`,
+            COL_STATION_CALLSIGN AS `station_callsign`,
+            COL_OPERATOR AS `operator`,
+            COL_COMMENT AS `comment`
+        FROM TABLE_HRD_CONTACTS_V01
+        WHERE COL_TIME_ON BETWEEN ? AND ?
+    ";
+
+    // IN / NOT IN for event callsigns
+    $placeholders = implode(',', array_fill(0, count(EVENT_CALLSIGNS), '?'));
+    if ($non_event_calls) {
+        $sql .= " AND COL_STATION_CALLSIGN NOT IN ($placeholders)";
+    } else {
+        $sql .= " AND COL_STATION_CALLSIGN IN ($placeholders)";
+    }
+
+    // Normalize optional filters (treat empty string as "not set")
+    $select_operator = isset($select_operator) ? trim($select_operator) : null;
+    if ($select_operator === '') $select_operator = null;
+
+    $select_station_callsign = isset($select_station_callsign) ? trim($select_station_callsign) : null;
+    if ($select_station_callsign === '') $select_station_callsign = null;
+
+    // Optional operator filter
+    if (!is_null($select_operator)) {
+        $sql .= " AND COL_OPERATOR = ?";
+    }
+
+    // Optional specific station_callsign filter
+    if (!is_null($select_station_callsign)) {
+        $sql .= " AND COL_STATION_CALLSIGN = ?";
+    }
+
+    // Final ordering
+    $sql .= " ORDER BY COL_STATION_CALLSIGN, COL_OPERATOR, COL_BAND, COL_MODE, COL_TIME_ON";
+
+    // Build params in the same order as the placeholders
+    $params = [];
+    $params[] = $start_ts;
+    $params[] = $end_ts;
+
+    // Event callsigns for IN/NOT IN
+    foreach (EVENT_CALLSIGNS as $cs) {
+        $params[] = $cs;
+    }
+
+    // Then operator, then specific station (if present)
+    if (!is_null($select_operator)) {
+        $params[] = $select_operator;
+    }
+    if (!is_null($select_station_callsign)) {
+        $params[] = $select_station_callsign;
+    }
+
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        log_msg(DEBUG_ERROR, "Prepare failed: " . $conn->error);
+        return $rows;
+    }
+
+    $types = str_repeat('s', count($params));
+    if (!$stmt->bind_param($types, ...$params)) {
+        log_msg(DEBUG_ERROR, "bind_param failed: " . $stmt->error);
+        $stmt->close();
+        return $rows;
+    }
+
+    if (!$stmt->execute()) {
+        log_msg(DEBUG_ERROR, "Execute failed: " . $stmt->error);
+        $stmt->close();
+        return $rows;
+    }
+
+    $result = $stmt->get_result();
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $rows[] = $row;
+        }
+        $result->free();
+    }
+
+    $stmt->close();
     return $rows;
 }
 
