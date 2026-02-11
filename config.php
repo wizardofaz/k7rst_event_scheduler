@@ -33,6 +33,11 @@ csrf_start_session_if_needed();
 
 define('APP_VERSION', '1.0.11.17 2025-11-17');
 
+// wavelog integration config
+// admin notification webhook TRUE|FALSE
+$wlconf['admin_notify'] = TRUE;
+$wlconf['admin_notify_url'] = 'http://rst.kc9uhi.ampr.org/scheduler-api/notify.php';
+
 // allow setting DEBUG_LEVEL differently when 
 // running from .alpha directory
 // see also dubug_list.php for file restrictions on debug prints

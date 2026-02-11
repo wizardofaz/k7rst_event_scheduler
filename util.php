@@ -635,3 +635,42 @@ function get_use_counts($use_counts, $category)
 
     return $categoryCounts;
 }
+/**
+ * Wavelog admin notification
+ * 
+ *  - sends logged in call, assigned call, and notes to a webhook for wavelog admin to do something with
+ * 
+ *  @param string $opcall   The operator's call sign (logged in user)
+ *  @param string $stncall  The station call sign (assigned to the timeslot)
+ *  @param string $clubstn  The club station name selected for the timeslot (if any)
+ *  @param string $notes    Any notes associated with the schedule entry
+ */
+function wavelog_notify($opcall, $stncall, $clubstn, $notes)
+{
+    global $wlconf;
+    $payload = json_encode(array(
+        'operator_call' => $opcall,
+        'station_call'  => $stncall,
+        'club_station'  => $clubstn,
+        'notes'         => $notes
+    ));
+
+    $ch = curl_init($wlconf['admin_notify_url']);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+    $response = curl_exec($ch);
+    if ($response === false) {
+        log_msg(DEBUG_ERROR, "Failed to send wavelog notification: " . curl_error($ch));
+    } else {
+        $resp = json_decode($response, true);
+        if(!empty($resp['info'])) {
+            $_SESSION['wavelog_info_flash'] = $resp['info'];
+        }
+    }
+
+    curl_close($ch);
+}
+?>
