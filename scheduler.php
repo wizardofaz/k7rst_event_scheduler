@@ -139,6 +139,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $edit_authorized && isset($_POST['a
 				&& !$club_station_conflict 
 				&& !$required_club_station_missing) {
 				db_add_schedule_line($db_conn, $date, $time, $logged_in_call, $logged_in_name, $band, $mode, $assigned_call, $club_station, $notes);
+				// bit 0 enables 'schedule' webhook
+				if(WL_WEBHOOK_EN & (1 << 0)) {
+					$wl_pl = json_encode(['operator_call' => $logged_in_call, 'station_call' => $assigned_call, 'clubstation_grid' => ($club_station == '') ? '' : WL_CLUBSTATION_GRID["$club_station"], 'club_station' => $club_station, 'notes' => $notes, 'key' => WL_EVENTCALL_APIKEY["$assigned_call"]]);
+					$wl_return = wavelog_webhook('schedule', $wl_pl);
+					if (!empty($wl_return['info'])) $_SESSION['wavelog_info_flash'] = $wl_return['info'];
+				}
 			}
 		}
 	}	
@@ -377,6 +383,19 @@ log_msg(DEBUG_DEBUG, "Formatting page with result: " . json_encode($table_rows))
 		❌ Slot full: all event callsigns are in use for this time slot.
     </div>
 <?php unset($_SESSION['slot_full_flash']); endif; ?>
+
+<?php if (!empty($_SESSION['wavelog_info_flash'])): ?>
+    <div id="wavelog-info-flash" style="
+	    background-color: #f8d7da;
+    	color: #721c24;
+    	padding: 10px;
+    	border: 1px solid #f5c6cb;
+    	margin-bottom: 1em;
+    	border-radius: 4px;
+    	max-width: 600px;">        
+		❌ <?php echo htmlspecialchars($_SESSION['wavelog_info_flash']); ?>
+    </div>
+<?php unset($_SESSION['wavelog_info_flash']); endif; ?>
 
 <form method="POST">
     <div class="section">
