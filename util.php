@@ -635,3 +635,34 @@ function get_use_counts($use_counts, $category)
 
     return $categoryCounts;
 }
+
+/**
+ * Wavelog webhook
+ * 
+ *  - sends to a webhook for wavelog admin to do something with
+ * 
+ *  @param string $method       API method
+ *  @param string $apipayload   JSON encoded data to send
+ */
+function wavelog_webhook($method, $apipayload)
+{
+    $cpayload = json_encode(array(
+        'method'        => $method,
+        'payload'       => $apipayload
+    ));
+
+    $ch = curl_init(WL_WEBHOOK_URL);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $cpayload);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FORBID_REUSE, true);
+
+    $response = curl_exec($ch);
+    if ($response === false) {
+        log_msg(DEBUG_ERROR, "Failed to call wavelog webhook: " . curl_error($ch));
+    } else {
+        return json_decode($response, true);
+    }
+}
+?>
