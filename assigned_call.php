@@ -158,6 +158,12 @@ function ac_pick_from_used(
 }
 
 function choose_assigned_call($date, $time, $op_call, $band, $mode): ?string {
+
+    // the simple case first: assigned call, required, reuse ok, there's only one
+    if (EVENT_CALL_REUSE && EVENT_CALLSIGNS_REQUIRED && count(EVENT_CALLSIGNS) == 1) {
+        return EVENT_CALLSIGNS[0];
+    }
+
     // assign an event call
     // 1) what calls are already used in this slot
     $usedCalls = event_used_calls_in_slot(EVENT_NAME, $date, $time);

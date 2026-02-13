@@ -220,3 +220,19 @@ function get_event_db_connection_from_master($event_name) {
     log_msg(DEBUG_ERROR, "could not connect to event db $event_name, SQL error: " . $conn->connect_error);
     return null;
 }
+
+function get_event_qsolog_connection() {
+    if (!defined('QSOLOG_DB')) {
+        if (defined('EVENT_NAME')) {
+            log_msg(DEBUG_ERROR, "QSOLOG_DB not defined for event ".EVENT_NAME);
+        } else {
+            log_msg(DEBUG_ERROR, "QSO_LOG and EVENT_NAME both not defined.");
+        }
+        return null;
+    }
+
+    $conn = new mysqli(QSOLOG_DB['host'].':'.QSOLOG_DB['port'], QSOLOG_DB['user'], QSOLOG_DB['password'], QSOLOG_DB['database']);
+    if (!$conn->connect_error) return $conn;
+    log_msg(DEBUG_ERROR, "could not connect to qsolog db for ".EVENT_NAME.", SQL error: " . $conn->connect_error);
+    return null;
+}

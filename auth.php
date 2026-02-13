@@ -35,8 +35,13 @@ function auth_login_or_create(string $event, string $callsign, string $name, str
     $res = $stmt->get_result();
     $row = $res->fetch_assoc();
     $stmt->close();
+    $login_success = false;
 
-    if ($row) {
+    // if we don't know this guy, no way to get in
+    if (!$row) return false;
+
+    if (!empty($row['password_hash']) || !empty($row['op_password'])) {
+        // there is a row with either a password or hash - check it
         $ok = false;
         if (!empty($row['password_hash'])) {
             $ok = password_verify($pw, $row['password_hash']);
@@ -64,12 +69,15 @@ function auth_login_or_create(string $event, string $callsign, string $name, str
             'since'    => gmdate('c'),
         ];
         $db->close();
-        return true;
+        $login_success = true;
     } else {
+        // The user is in the table but no pw or hash - let him create one
         // First login creates account (store both for now; we can NULL op_password later)
         $hash = password_hash($pw, PASSWORD_DEFAULT);
-        $stmt = $db->prepare('INSERT INTO operator_passwords (op_call, op_password, password_hash) VALUES (?, ?, ?)');
-        $stmt->bind_param('sss', $call, $pw, $hash);
+        $stmt = $db->prepare('UPDATE operator_passwords SET op_password = ? , password_hash = ? WHERE id = ?');
+
+        //$stmt = $db->prepare('INSERT INTO operator_passwords (op_call, op_password, password_hash) VALUES (?, ?, ?)');
+        $stmt->bind_param('ssi', $pw, $hash, $row['id']);
         if (!$stmt->execute()) {
             $stmt->close();
             $db->close();
@@ -88,8 +96,39 @@ function auth_login_or_create(string $event, string $callsign, string $name, str
             'since'    => gmdate('c'),
         ];
         $db->close();
-        return true;
+        $login_success = true;
     }
+
+    if ($login_success) {
+        $_SESSION['__RST_EVENT_ACTIVE__'] = true;
+    }
+    return $login_success;
+}
+
+function _cleanup_session() {
+    // Make sure a session is active before manipulating it
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    // 1) Regenerate ID while session is still active
+    session_regenerate_id(true);
+
+    // 2) Clear all session data
+    $_SESSION = [];
+
+    // 3) Optionally remove the session cookie too (recommended)
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params["path"], $params["domain"],
+            $params["secure"], $params["httponly"]
+        );
+    }
+
+    // 4) Finally destroy the session
+    session_destroy();
+
 }
 
 function auth_logout(): void {
@@ -101,13 +140,11 @@ function auth_logout(): void {
         $params = session_get_cookie_params();
         setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
     }
-    session_destroy();
-    session_regenerate_id(true);
-    session_regenerate_id(true);
+    _cleanup_session();
 
     if ($browse_only) {
         $event_name = (defined('EVENT_NAME') ? EVENT_NAME : '');
-        header("Location: browser_goodbye.php?event=".EVENT_NAME);
+        header("Location: browser_goodbye.php?event=".$event_name);
         exit;
     }
 
@@ -159,10 +196,12 @@ function auth_norm_call(string $call): string {
 function auth_status_for_callsign(string $event, string $callsign): string {
     $db = get_event_db_connection_from_master($event);
     $call = auth_norm_call($callsign);
-    $stmt = $db->prepare('SELECT id FROM operator_passwords WHERE op_call = ? LIMIT 1');
+    $stmt = $db->prepare('SELECT id, op_call, op_password, password_hash FROM operator_passwords WHERE op_call = ? LIMIT 1');
     $stmt->bind_param('s', $call);
     $stmt->execute();
-    $exists = (bool)$stmt->get_result()->fetch_row();
+    $res = $stmt->get_result();
+    $row = $res->fetch_assoc();
+    $exists = ($row && $row['op_call'] && ($row['op_password'] || $row['password_hash']));
     $stmt->close();
     $db->close();
     return $exists ? 'exists' : 'new';
