@@ -75,7 +75,7 @@ $CSRF_TOKEN = $_SESSION['selfspot_csrf'];
 
 $DEFAULT_COMMENT = 'CACTUS Special Event';
 if (!empty($logged_in_call)) {
-    $DEFAULT_COMMENT .= ' — op ' . strtoupper($logged_in_call)
+    $DEFAULT_COMMENT .= ' - op ' . strtoupper($logged_in_call)
         . (!empty($logged_in_name) ? '/' . $logged_in_name : '');
 }
 
