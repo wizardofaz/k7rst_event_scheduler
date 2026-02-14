@@ -139,11 +139,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $edit_authorized && isset($_POST['a
 				&& !$club_station_conflict 
 				&& !$required_club_station_missing) {
 				db_add_schedule_line($db_conn, $date, $time, $logged_in_call, $logged_in_name, $band, $mode, $assigned_call, $club_station, $notes);
-				// bit 0 enables 'schedule' webhook
-				if(WL_WEBHOOK_EN & (1 << 0)) {
-					$wl_pl = json_encode(['operator_call' => $logged_in_call, 'station_call' => $assigned_call, 'clubstation_grid' => ($club_station == '') ? '' : WL_CLUBSTATION_GRID["$club_station"], 'club_station' => $club_station, 'notes' => $notes, 'key' => WL_EVENTCALL_APIKEY["$assigned_call"]]);
-					$wl_return = wavelog_webhook('schedule', $wl_pl);
+				if(WL_WEBHOOK_EN & (1 << 0)) {  //bit 0 enables 'opcheck' webhook
+					$wl_pl = json_encode(['key' => WL_EVENTCALL_APIKEY["$assigned_call"], 'operator_call' => $logged_in_call, 'station_call' => $assigned_call]);
+					$wl_return = wavelog_webhook('opcheck', $wl_pl);
 					if (!empty($wl_return['info'])) $_SESSION['wavelog_info_flash'] = $wl_return['info'];
+				}
+				if (WL_WEBHOOK_EN & (1 << 1)) { // bit 1 enables 'gridcheck' webhook
+					$wl_pl = json_encode(['key' => WL_EVENTCALL_APIKEY["$assigned_call"], 'operator_call' => $logged_in_call, 'station_call' => $assigned_call, 'clubstation_grid' => ($club_station == '') ? '' : WL_CLUBSTATION_GRID["$club_station"], 'club_station' => $club_station, 'notes' => $notes]);
+					$wl_return = wavelog_webhook('gridcheck', $wl_pl);
+					if (!empty($wl_return['info'])) $_SESSION['wavelog_info_flash'] = empty($_SESSION['wavelog_info_flash']) ? $wl_return['info'] : $_SESSION['wavelog_info_flash'] . ' ' . $wl_return['info'];
 				}
 			}
 		}
