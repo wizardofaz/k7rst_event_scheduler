@@ -175,7 +175,9 @@ if (!$start_date && !$end_date) {
 	$start_date = $event_start_date;
 	$end_date = $event_end_date;
 }
-if ($today_utc > $start_date && $today_utc <= $end_date) {
+
+// On initial GET, default to today's date as start date. Subsequent POSTs can override. 
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && $today_utc > $start_date && $today_utc <= $end_date) {
 	$start_date = $today_utc;
 }
 
@@ -258,7 +260,7 @@ foreach ($dates as $date) {
 		// Except if event callsigns are required and all are used, 
 		// or club station is required and all are used
 		// in which case no open slot is offered.
-		if (EVENT_CALLSIGNS_REQUIRED && $schedule_count_in_this_slot >= count(EVENT_CALLSIGNS)) {
+		if (EVENT_CALLSIGNS_REQUIRED && !EVENT_CALL_REUSE && $schedule_count_in_this_slot >= count(EVENT_CALLSIGNS)) {
 			$offer_open_slot = false;
 			log_msg(DEBUG_DEBUG, "event callsigns all used up, no offer of open slot");
 		}

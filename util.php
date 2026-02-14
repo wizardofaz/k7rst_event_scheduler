@@ -665,4 +665,28 @@ function wavelog_webhook($method, $apipayload)
         return json_decode($response, true);
     }
 }
+
+/*
+ * Return true if the given file is the entry script for this request.
+ * i.e., that file was invoked directly via the URL (not just included).
+ * Intended use is to gate test drivers in open code of files normally
+ * included just for access to the functions they contain.
+ */
+function is_entry_script(string $file): bool
+{
+    // Optionally avoid running test drivers from CLI
+    if (PHP_SAPI === 'cli') {
+        return false;
+    }
+
+    $entry  = realpath($_SERVER['SCRIPT_FILENAME'] ?? '');
+    $caller = realpath($file);
+
+    if ($entry === false || $caller === false) {
+        return false;
+    }
+
+    return $entry === $caller;
+}
+
 ?>
