@@ -688,5 +688,3 @@ function is_entry_script(string $file): bool
 
     return $entry === $caller;
 }
-
-?>
