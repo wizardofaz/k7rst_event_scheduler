@@ -65,7 +65,17 @@ to make it go away.</p>
     <li>Choose a band and mode you will operate in that slot.</li>
     <li>Optionally choose a <strong>club station</strong> if you'll be using one — only one person can reserve 
         a club station per time slot.</li>
-    <li>Add any optional notes you'd like to include with your booking.</li>
+    <li>Add any optional notes you'd like to include with your booking. 
+<?php
+if (WL_WEBHOOK_EN & (1 << 1)) { // bit 1 enables 'gridcheck'
+    echo <<<HTML
+        This event requires 6 character maidenhead grid squares for accurate logging.
+        If operating at a location other than a <strong>club station</strong>, your home QTH, or the gridsquare for your home QTH isn't listed in public callbooks (such as if you're using a PO Box for your license address),
+        please include the 6 character grid square for the location you'll be operating from in this field. Find your gridsquare at <a href="https://zone-check.eu">zone-check.eu</a>
+HTML;
+}
+?>
+        </li>
     <li>Click <strong>“Add Selected Slots”</strong> just below the bottom of the list to finalize your signup.</li>
 </ul>
 
