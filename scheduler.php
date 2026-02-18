@@ -145,7 +145,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $edit_authorized && isset($_POST['a
 					if (!empty($wl_return['info'])) $_SESSION['wavelog_info_flash'] = $wl_return['info'];
 				}
 				if (WL_WEBHOOK_EN & (1 << 1)) { // bit 1 enables 'gridcheck' webhook
-					$wl_pl = json_encode(['key' => WL_EVENTCALL_APIKEY["$assigned_call"], 'operator_call' => $logged_in_call, 'station_call' => $assigned_call, 'clubstation_grid' => ($club_station == '') ? '' : WL_CLUBSTATION_GRID["$club_station"], 'club_station' => $club_station, 'notes' => $notes]);
+					if (!empty($club_station)) {
+						$clubstation_grid = is_array(CLUB_STATIONS[$club_station]) ? CLUB_STATIONS[$club_station]['grid'] : '';
+						$clubstation_name = is_array(CLUB_STATIONS[$club_station]) ? CLUB_STATIONS[$club_station]['display_name'] : $club_station;
+					} else {
+						$clubstation_grid = '';
+						$clubstation_name = '';
+					}
+					$wl_pl = json_encode(['key' => WL_EVENTCALL_APIKEY["$assigned_call"], 'operator_call' => $logged_in_call, 'station_call' => $assigned_call, 'clubstation_grid' => $clubstation_grid, 'club_station' => $clubstation_name, 'notes' => $notes]);
 					$wl_return = wavelog_webhook('gridcheck', $wl_pl);
 					if (!empty($wl_return['info'])) $_SESSION['wavelog_info_flash'] = empty($_SESSION['wavelog_info_flash']) ? $wl_return['info'] : $_SESSION['wavelog_info_flash'] . ' ' . $wl_return['info'];
 				}
