@@ -403,7 +403,7 @@ log_msg(DEBUG_DEBUG, "Formatting page with result: " . json_encode($table_rows))
     </div>
 <?php unset($_SESSION['wavelog_info_flash']); endif; ?>
 
-<form method="POST">
+<form method="POST" id="formschedule">
     <div class="section">
 		<?php if ($edit_authorized): ?>
 			<strong><?= htmlspecialchars($logged_in_call) ?></strong> is logged in.
@@ -739,8 +739,19 @@ log_msg(DEBUG_DEBUG, "Formatting page with result: " . json_encode($table_rows))
 
 	<br>
 	<?php if ($edit_authorized): ?>
-		<input type="submit" name="add_selected" value="Add Selected Slots">
-		<input type="submit" name="delete_selected" value="Delete Selected Slots">
+		<script>
+			//disable add/delete buttons on form submit. Prevent multiple clicks while processing
+			function schedulesubmit(submittype) {
+				document.getElementById('btnaddslots').disabled = true;
+				document.getElementById('btndelslots').disabled = true;
+				document.getElementById('hiddensubmit').name = submittype;
+				document.getElementById('processnotification').style.visibility = 'visible';
+			}
+		</script>
+		<input type="button" name="add_selected" value="Add Selected Slots" id="btnaddslots" onclick="schedulesubmit('add_selected'); form.submit();">
+		<input type="button" name="delete_selected" value="Delete Selected Slots" id="btndelslots" onclick="schedulesubmit('delete_selected'); form.submit();">
+		<input type="hidden" id="hiddensubmit">
+		<div id="processnotification" style="background-color: #ffffff; color: #006600; padding: 10px; border: 1px solid #006600; margin-bottom: 1em; border-radius: 4px; max-width: 300px; visibility: hidden;"><b>Processing...</b></div>
 	<?php endif; ?>
 <?php endif; ?>
 
