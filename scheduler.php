@@ -309,7 +309,9 @@ log_msg(DEBUG_DEBUG, "Formatting page with result: " . json_encode($table_rows))
 
 <h2><?php echo htmlspecialchars(EVENT_DISPLAY_NAME) ?> Operator Scheduling 
 <a href="how-do-i-use-this.php" target="_blank">(How do I use this?)</a>
-<a href="visualizer.php">(Switch to "Visualizer" grid)</a>
+<!-- visualizer removed for now 
+<a href="visualizer.php">(Switch to "Visualizer" grid)</a> 
+-->
 </h2>
 
 <?php if (!empty($_SESSION['nothing_to_add_flash'])): ?>
@@ -664,15 +666,45 @@ log_msg(DEBUG_DEBUG, "Formatting page with result: " . json_encode($table_rows))
 						while ($res && $row2 = $res->fetch_assoc()) {
 							if (!empty($row2['club_station'])) $used[] = $row2['club_station'];
 						}
-						foreach (CLUB_STATIONS as $station):
-							if (!in_array($station, $used) && is_club_station_open($station,$date, $time)):
+						foreach (CLUB_STATIONS as $station_key => $station_info):
+
+							// Legacy format: ["Yuma Hamfest", ...]
+							if (!is_array($station_info)) {
+								$station_key  = $station_info;   // value/id becomes the string name
+								$station_label = $station_info;  // label is the same
+							} else {
+								// New format: { "yuma_hamfest": { "display_name": "...", ... }, ... }
+								$station_label = $station_info['display_name'] ?? $station_key;
+							}
+
+							if (!in_array($station_key, $used) && is_club_station_open($station_key, $date, $time)):
 						?>
-							<option value="<?= $station ?>" <?= $station === $r['club_station'] ? 'selected' : '' ?>><?= $station ?></option>
-						<?php endif; endforeach; ?>
+								<option value="<?= htmlspecialchars($station_key) ?>"
+										<?= ($station_key === $r['club_station']) ? 'selected' : '' ?>>
+									<?= htmlspecialchars($station_label) ?>
+								</option>
+						<?php
+							endif;
+						endforeach;
+						?>
 					</select>
 				<?php else: ?>
 					<!-- Display fixed club station -->
-					<?= htmlspecialchars($r['club_station'] ?? '') ?: '--' ?>
+					<?php
+					$cs_key = $r['club_station'] ?? '';
+					$cs_display_name = '';
+
+					if ($cs_key !== '') {
+						if (isset(CLUB_STATIONS[$cs_key]) && is_array(CLUB_STATIONS[$cs_key])) {
+							// new format
+							$cs_display_name = CLUB_STATIONS[$cs_key]['display_name'] ?? $cs_key;
+						} else {
+							// legacy format (value stored is already the name)
+							$cs_display_name = $cs_key;
+						}
+					}
+					?>
+					<?= htmlspecialchars($cs_display_name ?: '--') ?>
 				<?php endif; ?>
 			</td>
 			<td>
