@@ -31,7 +31,7 @@ require_once __DIR__ . '/csrf.php';
 
 csrf_start_session_if_needed();
 
-define('APP_VERSION', '1.0.11.17 2025-11-17');
+define('APP_VERSION', '1.1.02.17 2026-02-17');
 
 // allow setting DEBUG_LEVEL differently when 
 // running from .alpha directory

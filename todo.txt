@@ -1,8 +1,9 @@
 Scheduler todos
 
+
 Bugs:
-WFD can't add more slots same time and date (see Don email 11/07 9:48)
-(minor bug) if show my schedule and open slots, slots that are full (all 8 calls in use) still show as open to me, but fail if I try to use 
+self spot comment gets doubled up (default comment before and after op)
+numerous issues with visualizer
 (minor bug) if I'm logged in and go back to the index page without logging out, I can't get back to editing. 
 $errors and $messages in index.php don't get displayed
 when switch events, user remains logged in
@@ -10,6 +11,8 @@ when log out index page doesn't do the event selected unless you change it
 broken logic if starting scheduler.php?event=xxx (low priority fix)
 
 todo:
+fold club station hours into club_stations config constant
+Allow quick access to schedule browse (one URL)
 finish the ?showpw=1 debug mode; as is the edit schedule button is not active in that mode
 mode and band filters don't work and options disappear
 handle $errors[] (scan code for this)
@@ -51,6 +54,11 @@ handle enter key to show just my schedule, or maybe just log in
 admin screen, admin users
 
 Done:
+(minor bug) if show my schedule and open slots, slots that are full (all 8 calls in use) still show as open to me, but fail if I try to use 
+(bug) if I use "add selected slots" but didn't check any, schedule does not re-display, and no error message
+(bug) after add slots, schedule does not re-display (this and above also fixed for delete)
+(wasn't a bug)(minor bug) cw listed twice in modes dropdown
+WFD can't add more slots same time and date (see Don email 11/07 9:48)
 move login to index.php, require login with pw (no more un-authenticated users)
 no error is given for wrong password
 days of week "ALL" should be first not last
