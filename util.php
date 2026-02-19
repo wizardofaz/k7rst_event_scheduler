@@ -657,10 +657,12 @@ function wavelog_webhook($method, $apipayload)
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_FORBID_REUSE, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
 
     $response = curl_exec($ch);
     if ($response === false) {
         log_msg(DEBUG_ERROR, "Failed to call wavelog webhook: " . curl_error($ch));
+        return array('info' => 'Unable to contact logger');
     } else {
         return json_decode($response, true);
     }
