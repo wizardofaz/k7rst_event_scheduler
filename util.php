@@ -637,6 +637,38 @@ function get_use_counts($use_counts, $category)
 }
 
 /**
+ * Wavelog webhook
+ * 
+ *  - sends to a webhook for wavelog admin to do something with
+ * 
+ *  @param string $method       API method
+ *  @param string $apipayload   JSON encoded data to send
+ */
+function wavelog_webhook($method, $apipayload)
+{
+    $cpayload = json_encode(array(
+        'method'        => $method,
+        'payload'       => $apipayload
+    ));
+
+    $ch = curl_init(WL_WEBHOOK_URL);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $cpayload);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FORBID_REUSE, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+
+    $response = curl_exec($ch);
+    if ($response === false) {
+        log_msg(DEBUG_ERROR, "Failed to call wavelog webhook: " . curl_error($ch));
+        return array('info' => 'Unable to contact logger');
+    } else {
+        return json_decode($response, true);
+    }
+}
+
+/*
  * Return true if the given file is the entry script for this request.
  * i.e., that file was invoked directly via the URL (not just included).
  * Intended use is to gate test drivers in open code of files normally
@@ -658,4 +690,3 @@ function is_entry_script(string $file): bool
 
     return $entry === $caller;
 }
-

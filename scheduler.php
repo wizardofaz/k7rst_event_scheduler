@@ -138,7 +138,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $edit_authorized && isset($_POST['a
 				&& !$band_mode_conflict 
 				&& !$club_station_conflict 
 				&& !$required_club_station_missing) {
+				// it may have been awhile since DB connection; check and re-establish if necessary
+				if (!mysqli_ping($db_conn)) {
+					mysqli_close($db_conn);
+					$db_conn = get_event_db_connection_from_master(EVENT_NAME);
+				}
 				db_add_schedule_line($db_conn, $date, $time, $logged_in_call, $logged_in_name, $band, $mode, $assigned_call, $club_station, $notes);
+				if(WL_WEBHOOK_EN & (1 << 0)) {  //bit 0 enables 'opcheck' webhook
+					$wl_pl = json_encode(['key' => WL_EVENTCALL_APIKEY["$assigned_call"], 'operator_call' => $logged_in_call, 'station_call' => $assigned_call]);
+					$wl_return = wavelog_webhook('opcheck', $wl_pl);
+					if (!empty($wl_return['info'])) $_SESSION['wavelog_info_flash'] = $wl_return['info'];
+				}
+				if (WL_WEBHOOK_EN & (1 << 1)) { // bit 1 enables 'gridcheck' webhook
+					if (!empty($club_station)) {
+						$clubstation_grid = is_array(CLUB_STATIONS[$club_station]) ? CLUB_STATIONS[$club_station]['grid'] : '';
+						$clubstation_name = is_array(CLUB_STATIONS[$club_station]) ? CLUB_STATIONS[$club_station]['display_name'] : $club_station;
+					} else {
+						$clubstation_grid = '';
+						$clubstation_name = '';
+					}
+					$wl_pl = json_encode(['key' => WL_EVENTCALL_APIKEY["$assigned_call"], 'operator_call' => $logged_in_call, 'station_call' => $assigned_call, 'clubstation_grid' => $clubstation_grid, 'club_station' => $clubstation_name, 'notes' => $notes]);
+					$wl_return = wavelog_webhook('gridcheck', $wl_pl);
+					if (!empty($wl_return['info'])) $_SESSION['wavelog_info_flash'] = empty($_SESSION['wavelog_info_flash']) ? $wl_return['info'] : $_SESSION['wavelog_info_flash'] . ' ' . $wl_return['info'];
+				}
 			}
 		}
 	}	
@@ -203,6 +225,12 @@ log_msg(DEBUG_VERBOSE, "dates[]: " . json_encode($dates));
 log_msg(DEBUG_VERBOSE, "times[]: " . json_encode($times));
 log_msg(DEBUG_VERBOSE, "bands[]: " . json_encode($bands_list));
 log_msg(DEBUG_VERBOSE, "modes[]: " . json_encode($modes_list));
+
+// it may have been awhile since DB connection; check and re-establish if necessary
+if (!mysqli_ping($db_conn)) {
+	mysqli_close($db_conn);
+	$db_conn = get_event_db_connection_from_master(EVENT_NAME);
+}
 
 $use_counts = null; // accumulator for usage counts of CALL, BAND, MODE, etc
 foreach ($dates as $date) {
@@ -382,7 +410,20 @@ log_msg(DEBUG_DEBUG, "Formatting page with result: " . json_encode($table_rows))
     </div>
 <?php unset($_SESSION['slot_full_flash']); endif; ?>
 
-<form method="POST">
+<?php if (!empty($_SESSION['wavelog_info_flash'])): ?>
+    <div id="wavelog-info-flash" style="
+	    background-color: #f8d7da;
+    	color: #721c24;
+    	padding: 10px;
+    	border: 1px solid #f5c6cb;
+    	margin-bottom: 1em;
+    	border-radius: 4px;
+    	max-width: 600px;">        
+		❌ <?php echo htmlspecialchars($_SESSION['wavelog_info_flash']); ?>
+    </div>
+<?php unset($_SESSION['wavelog_info_flash']); endif; ?>
+
+<form method="POST" id="formschedule">
     <div class="section">
 		<?php if ($edit_authorized): ?>
 			<strong><?= htmlspecialchars($logged_in_call) ?></strong> is logged in.
@@ -748,8 +789,19 @@ log_msg(DEBUG_DEBUG, "Formatting page with result: " . json_encode($table_rows))
 
 	<br>
 	<?php if ($edit_authorized): ?>
-		<input type="submit" name="add_selected" value="Add Selected Slots">
-		<input type="submit" name="delete_selected" value="Delete Selected Slots">
+		<script>
+			//disable add/delete buttons on form submit. Prevent multiple clicks while processing
+			function schedulesubmit(submittype) {
+				document.getElementById('btnaddslots').disabled = true;
+				document.getElementById('btndelslots').disabled = true;
+				document.getElementById('hiddensubmit').name = submittype;
+				document.getElementById('processnotification').style.visibility = 'visible';
+			}
+		</script>
+		<input type="button" name="add_selected" value="Add Selected Slots" id="btnaddslots" onclick="schedulesubmit('add_selected'); form.submit();">
+		<input type="button" name="delete_selected" value="Delete Selected Slots" id="btndelslots" onclick="schedulesubmit('delete_selected'); form.submit();">
+		<input type="hidden" id="hiddensubmit">
+		<div id="processnotification" style="background-color: #ffffff; color: #006600; padding: 10px; border: 1px solid #006600; margin-bottom: 1em; border-radius: 4px; max-width: 300px; visibility: hidden;"><b>Processing...</b></div>
 	<?php endif; ?>
 <?php endif; ?>
 
