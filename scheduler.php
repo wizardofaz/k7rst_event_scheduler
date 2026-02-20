@@ -138,6 +138,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $edit_authorized && isset($_POST['a
 				&& !$band_mode_conflict 
 				&& !$club_station_conflict 
 				&& !$required_club_station_missing) {
+				// it may have been awhile since DB connection; check and re-establish if necessary
+				if (!mysqli_ping($db_conn)) {
+					mysqli_close($db_conn);
+					$db_conn = get_event_db_connection_from_master(EVENT_NAME);
+				}
 				db_add_schedule_line($db_conn, $date, $time, $logged_in_call, $logged_in_name, $band, $mode, $assigned_call, $club_station, $notes);
 				if(WL_WEBHOOK_EN & (1 << 0)) {  //bit 0 enables 'opcheck' webhook
 					$wl_pl = json_encode(['key' => WL_EVENTCALL_APIKEY["$assigned_call"], 'operator_call' => $logged_in_call, 'station_call' => $assigned_call]);
@@ -220,6 +225,12 @@ log_msg(DEBUG_VERBOSE, "dates[]: " . json_encode($dates));
 log_msg(DEBUG_VERBOSE, "times[]: " . json_encode($times));
 log_msg(DEBUG_VERBOSE, "bands[]: " . json_encode($bands_list));
 log_msg(DEBUG_VERBOSE, "modes[]: " . json_encode($modes_list));
+
+// it may have been awhile since DB connection; check and re-establish if necessary
+if (!mysqli_ping($db_conn)) {
+	mysqli_close($db_conn);
+	$db_conn = get_event_db_connection_from_master(EVENT_NAME);
+}
 
 $use_counts = null; // accumulator for usage counts of CALL, BAND, MODE, etc
 foreach ($dates as $date) {
